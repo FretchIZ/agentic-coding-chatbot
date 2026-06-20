@@ -9,7 +9,6 @@ from langchain_anthropic import ChatAnthropic
 from pydantic import BaseModel, Field
 from app.core.config import get_settings
 from app.tools.registry import get_all_tools
-import json
 
 
 class AgentState(BaseModel):
@@ -46,6 +45,7 @@ def get_llm():
     return ChatOpenAI(
         model=settings.llm_model,
         api_key=settings.openai_api_key,
+        base_url=settings.openai_base_url,
         temperature=0.1,
     )
 

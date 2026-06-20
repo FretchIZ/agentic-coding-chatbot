@@ -3,8 +3,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { ChatMessage, Session, WSMessage } from '@/types/chat'
 
-const API_URL = '/api'
-const WS_URL = 'ws://localhost:8000/api/ws/chat'
+const API_URL = import.meta.env.VITE_API_URL || '/api'
+const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/api/ws/chat'
 
 export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([])

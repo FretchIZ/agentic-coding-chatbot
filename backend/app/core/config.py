@@ -4,10 +4,11 @@ from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    llm_provider: str = Field(default="openai", validation_alias="LLM_PROVIDER")
+    llm_provider: str = Field(default="nvidia", validation_alias="LLM_PROVIDER")
     openai_api_key: str = Field(default="", validation_alias="OPENAI_API_KEY")
+    openai_base_url: str = Field(default="https://integrate.api.nvidia.com/v1", validation_alias="OPENAI_BASE_URL")
     anthropic_api_key: str = Field(default="", validation_alias="ANTHROPIC_API_KEY")
-    llm_model: str = Field(default="gpt-4o-mini", validation_alias="LLM_MODEL")
+    llm_model: str = Field(default="meta/llama-3.3-70b-instruct", validation_alias="LLM_MODEL")
 
     host: str = Field(default="0.0.0.0", validation_alias="HOST")
     port: int = Field(default=8000, validation_alias="PORT")
