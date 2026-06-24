@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: agentic-coding-chatbot-django
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt && python manage.py migrate --noinput && python manage.py collectstatic --noinput
+    startCommand: daphne -b 0.0.0.0 -p $PORT config.asgi:application
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "false"
+      - key: ALLOWED_HOSTS
+        value: "*"
+      - key: HF_TOKEN
+        sync: false
+      - key: HF_MODEL
+        value: meta-llama/Meta-Llama-3.1-8B-Instruct
+      - key: HF_DEVICE
+        value: "cpu"
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: agentic-chat-redis
+          property: connectionString
+      - key: CORS_ALLOWED_ORIGINS
+        value: "https://agentic-coding-chatbot.vercel.app"
+      - key: WORKSPACE_DIR
+        value: ./workspace
+    healthCheckPath: /api/health/
+
+databases:
+  - name: agentic-chat-db
+    type: redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru

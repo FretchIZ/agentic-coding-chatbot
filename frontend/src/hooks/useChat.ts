@@ -72,6 +72,29 @@ export function useChat() {
             }
             break
           }
+          case 'content': {
+            const content = data.content || ''
+            const lastMsg = messages[messages.length - 1]
+            if (lastMsg && lastMsg.role === 'assistant' && lastMsg.type === 'text') {
+              setMessages(prev => {
+                const newMsgs = [...prev]
+                newMsgs[newMsgs.length - 1] = {
+                  ...newMsgs[newMsgs.length - 1],
+                  content: newMsgs[newMsgs.length - 1].content + content
+                }
+                return newMsgs
+              })
+            } else {
+              setMessages(prev => [...prev, {
+                id: generateId(),
+                role: 'assistant',
+                content,
+                type: 'text',
+                timestamp: new Date().toISOString(),
+              }])
+            }
+            break
+          }
           case 'done':
             setIsLoading(false)
             break
@@ -95,7 +118,7 @@ export function useChat() {
         if (currentSessionId) connectWebSocket(currentSessionId)
       }, 3000)
     }
-  }, [currentSessionId])
+  }, [currentSessionId, messages])
 
   useEffect(() => {
     fetchSessions()
@@ -104,13 +127,13 @@ export function useChat() {
 
   const fetchSessions = async () => {
     try {
-      const res = await fetch(`${API_URL}/sessions`)
+      const res = await fetch(`${API_URL}/sessions/`)
       if (res.ok) {
         const data = await res.json()
         setSessions(data)
         if (data.length > 0 && !currentSessionId) {
-          setCurrentSessionId(data[0].session_id)
-          await loadSession(data[0].session_id)
+          setCurrentSessionId(data[0].id)
+          await loadSession(data[0].id)
         }
       }
     } catch (e) {
@@ -120,7 +143,7 @@ export function useChat() {
 
   const loadSession = async (sessionId: string) => {
     try {
-      const res = await fetch(`${API_URL}/sessions/${sessionId}`)
+      const res = await fetch(`${API_URL}/sessions/${sessionId}/`)
       if (res.ok) {
         const data = await res.json()
         setMessages(data.messages || [])
@@ -134,16 +157,15 @@ export function useChat() {
 
   const createSession = async () => {
     try {
-      const res = await fetch(`${API_URL}/chat`, {
+      const res = await fetch(`${API_URL}/sessions/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: '' }),
       })
       if (res.ok) {
         const data = await res.json()
         await fetchSessions()
-        setCurrentSessionId(data.session_id)
-        connectWebSocket(data.session_id)
+        setCurrentSessionId(data.id)
+        connectWebSocket(data.id)
       }
     } catch (e) {
       console.error('Failed to create session:', e)
@@ -157,7 +179,7 @@ export function useChat() {
 
   const deleteSession = async (sessionId: string) => {
     try {
-      await fetch(`${API_URL}/sessions/${sessionId}`, { method: 'DELETE' })
+      await fetch(`${API_URL}/sessions/${sessionId}/`, { method: 'DELETE' })
       await fetchSessions()
       if (currentSessionId === sessionId) {
         setCurrentSessionId(null)
@@ -187,7 +209,7 @@ export function useChat() {
     setMessages(prev => [...prev, userMessage])
 
     try {
-      const res = await fetch(`${API_URL}/chat`, {
+      const res = await fetch(`${API_URL}/chat/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: content, session_id: currentSessionId }),

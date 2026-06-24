@@ -13,11 +13,12 @@ export interface ChatMessage {
 }
 
 export interface Session {
-  session_id: string
-  messages: ChatMessage[]
+  id: string
   created_at: string
   updated_at: string
   metadata: Record<string, any>
+  messages?: ChatMessage[]
+  message_count?: number
 }
 
 export interface ChatRequest {
@@ -33,7 +34,7 @@ export interface ChatResponse {
 }
 
 export interface WSMessage {
-  type: 'message' | 'tool_call' | 'tool_result' | 'done' | 'error'
+  type: 'message' | 'tool_call' | 'tool_result' | 'content' | 'done' | 'error'
   message?: ChatMessage
   tool_call?: {
     id: string
@@ -46,5 +47,6 @@ export interface WSMessage {
     content: string
     is_error?: boolean
   }
+  content?: string
   error?: string
 }

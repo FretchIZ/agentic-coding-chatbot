@@ -40,11 +40,11 @@ export function Sidebar({ open, onToggle }: SidebarProps) {
         )}
         
         {sessions.map((session) => (
-          <div key={session.session_id} className="relative">
+          <div key={session.id} className="relative">
             <button
-              onClick={() => switchSession(session.session_id)}
+              onClick={() => switchSession(session.id)}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm ${
-                session.session_id === currentSessionId
+                session.id === currentSessionId
                   ? 'bg-primary/20 text-primary'
                   : 'hover:bg-accent'
               }`}
@@ -52,17 +52,17 @@ export function Sidebar({ open, onToggle }: SidebarProps) {
               <FileCode className="h-4 w-4 flex-shrink-0" />
               {open && (
                 <span className="truncate flex-1">
-                  Session {session.session_id.slice(0, 8)}...
+                  Session {session.id.slice(0, 8)}...
                 </span>
               )}
             </button>
             {open && (
               <button
-                onClick={(e) => { e.stopPropagation(); deleteSession(session.session_id); }}
-                onMouseEnter={() => setHoveredSession(session.session_id)}
+                onClick={(e) => { e.stopPropagation(); deleteSession(session.id); }}
+                onMouseEnter={() => setHoveredSession(session.id)}
                 onMouseLeave={() => setHoveredSession(null)}
                 className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded transition-colors opacity-0 hover:opacity-100 ${
-                  hoveredSession === session.session_id ? 'opacity-100' : ''
+                  hoveredSession === session.id ? 'opacity-100' : ''
                 } text-destructive hover:bg-destructive/10`}
                 aria-label="Delete session"
               >
