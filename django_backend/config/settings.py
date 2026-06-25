@@ -11,12 +11,12 @@ class Settings(BaseSettings):
     ALLOWED_HOSTS: list = ["*"]
     
     HF_TOKEN: str = ""
-    HF_MODEL: str = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+    HF_MODEL: str = "meta-llama/Meta-Lama-3.1-8B-Instruct"
     HF_DEVICE: str = "auto"
     
     REDIS_URL: str = "redis://localhost:6379/0"
     
-    CORS_ALLOWED_ORIGINS: list = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    CORS_ALLOWED_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
     
     WORKSPACE_DIR: str = str(BASE_DIR / "workspace")
     
@@ -96,6 +96,7 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
@@ -103,7 +104,8 @@ REST_FRAMEWORK = {
     "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
 }
 
-CORS_ALLOWED_ORIGINS = settings.CORS_ALLOWED_ORIGINS
+CORS_ALLOWED_ORIGINS = [o.strip() for o in settings.CORS_ALLOWED_ORIGINS.split(",") if o.strip()]
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in settings.CORS_ALLOWED_ORIGINS.split(",") if o.strip()]
 CORS_ALLOW_CREDENTIALS = True
 
 WORKSPACE_DIR = Path(settings.WORKSPACE_DIR)

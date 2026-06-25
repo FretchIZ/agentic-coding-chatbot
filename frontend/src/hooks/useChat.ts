@@ -78,10 +78,9 @@ export function useChat() {
             if (lastMsg && lastMsg.role === 'assistant' && lastMsg.type === 'text') {
               setMessages(prev => {
                 const newMsgs = [...prev]
-                newMsgs[newMsgs.length - 1] = {
-                  ...newMsgs[newMsgs.length - 1],
-                  content: newMsgs[newMsgs.length - 1].content + content
-                }
+                const last = { ...newMsgs[newMsgs.length - 1] }
+                last.content = last.content + content
+                newMsgs[newMsgs.length - 1] = last
                 return newMsgs
               })
             } else {
@@ -127,7 +126,7 @@ export function useChat() {
 
   const fetchSessions = async () => {
     try {
-      const res = await fetch(`${API_URL}/sessions/`)
+      const res = await fetch(`${API_URL}/sessions`)
       if (res.ok) {
         const data = await res.json()
         setSessions(data)
@@ -143,7 +142,7 @@ export function useChat() {
 
   const loadSession = async (sessionId: string) => {
     try {
-      const res = await fetch(`${API_URL}/sessions/${sessionId}/`)
+      const res = await fetch(`${API_URL}/sessions/${sessionId}`)
       if (res.ok) {
         const data = await res.json()
         setMessages(data.messages || [])
@@ -157,7 +156,7 @@ export function useChat() {
 
   const createSession = async () => {
     try {
-      const res = await fetch(`${API_URL}/sessions/`, {
+      const res = await fetch(`${API_URL}/sessions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       })
@@ -179,7 +178,7 @@ export function useChat() {
 
   const deleteSession = async (sessionId: string) => {
     try {
-      await fetch(`${API_URL}/sessions/${sessionId}/`, { method: 'DELETE' })
+      await fetch(`${API_URL}/sessions/${sessionId}`, { method: 'DELETE' })
       await fetchSessions()
       if (currentSessionId === sessionId) {
         setCurrentSessionId(null)
