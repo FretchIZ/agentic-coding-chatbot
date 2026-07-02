@@ -20,14 +20,21 @@ class FileListParams(BaseModel):
     recursive: bool = Field(default=False, description="Whether to list recursively")
 
 
+class FileDeleteParams(BaseModel):
+    path: str = Field(description="Relative path to the file or directory from workspace root")
+
+
 class FileTool:
     def __init__(self):
         self.workspace = Path(get_settings().workspace_dir).resolve()
         self.workspace.mkdir(parents=True, exist_ok=True)
 
     def _resolve_path(self, path: str) -> Path:
+        # Fix: Prevent path traversal by ensuring the resolved path is within workspace
         target = (self.workspace / path).resolve()
-        if not target.is_relative_to(self.workspace):
+        workspace_str = str(self.workspace.resolve())
+        target_str = str(target)
+        if not target_str.startswith(workspace_str + os.sep) and target_str != workspace_str:
             raise ValueError(f"Path {path} escapes workspace")
         return target
 
@@ -79,15 +86,17 @@ class FileTool:
                 })
         return result
 
-    def delete(self, path: str) -> str:
-        path = self._resolve_path(path)
+    def delete(self, params: FileDeleteParams) -> str:
+        path = self._resolve_path(params.path)
         if not path.exists():
-            raise FileNotFoundError(f"Path not found: {path}")
+            raise FileNotFoundError(f"Path not found: {params.path}")
         if path.is_dir():
-            path.rmdir()
+            # Fix: Use rmdir for empty directories, shutil.rmtree for non-empty
+            import shutil
+            shutil.rmtree(path)
         else:
             path.unlink()
-        return f"Deleted {path}"
+        return f"Deleted {params.path}"
 
 
 file_tool = FileTool()

@@ -3,8 +3,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { ChatMessage, Session, WSMessage } from '@/types/chat'
 
+// Fix: Use environment variables for API and WebSocket URLs
 const API_URL = import.meta.env.VITE_API_URL || '/api'
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/api/ws/chat'
+const WS_BASE_URL = import.meta.env.VITE_WS_URL || (window.location.hostname === 'localhost' ? 'ws://localhost:8000' : `wss://${window.location.host}`)
 
 export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -14,19 +15,25 @@ export function useChat() {
   const [error, setError] = useState<string | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
   const messageIdCounter = useRef(0)
+  const reconnectAttemptsRef = useRef(0)
+  const maxReconnectAttempts = 5
 
   const generateId = () => `msg-${Date.now()}-${messageIdCounter.current++}`
 
   const connectWebSocket = useCallback((sessionId: string) => {
+    // Fix: Close existing connection if open
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.close()
     }
 
-    const ws = new WebSocket(`${WS_URL}/${sessionId}`)
+    const wsUrl = `${WS_BASE_URL}/api/ws/chat/${sessionId}`
+    const ws = new WebSocket(wsUrl)
     wsRef.current = ws
 
     ws.onopen = () => {
       console.log('WebSocket connected')
+      reconnectAttemptsRef.current = 0
+      setError(null)
     }
 
     ws.onmessage = (event) => {
@@ -113,9 +120,14 @@ export function useChat() {
 
     ws.onclose = () => {
       console.log('WebSocket disconnected')
-      setTimeout(() => {
-        if (currentSessionId) connectWebSocket(currentSessionId)
-      }, 3000)
+      // Fix: Implement reconnection logic with exponential backoff
+      if (reconnectAttemptsRef.current < maxReconnectAttempts && currentSessionId) {
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 10000) // Max 10 seconds
+        reconnectAttemptsRef.current += 1
+        setTimeout(() => {
+          if (currentSessionId) connectWebSocket(currentSessionId)
+        }, delay)
+      }
     }
   }, [currentSessionId, messages])
 
@@ -131,8 +143,8 @@ export function useChat() {
         const data = await res.json()
         setSessions(data)
         if (data.length > 0 && !currentSessionId) {
-          setCurrentSessionId(data[0].id)
-          await loadSession(data[0].id)
+          setCurrentSessionId(data[0].session_id)
+          await loadSession(data[0].session_id)
         }
       }
     } catch (e) {
@@ -163,8 +175,8 @@ export function useChat() {
       if (res.ok) {
         const data = await res.json()
         await fetchSessions()
-        setCurrentSessionId(data.id)
-        connectWebSocket(data.id)
+        setCurrentSessionId(data.session_id)
+        connectWebSocket(data.session_id)
       }
     } catch (e) {
       console.error('Failed to create session:', e)

@@ -1,23 +1,65 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
-from typing import Dict, List
+from typing import Dict, List, Optional
 import json
 import uuid
+import os
+import pickle
+from pathlib import Path
+from pydantic import BaseModel
 from app.models.chat import ChatRequest, ChatResponse, ChatMessage, MessageRole, MessageType, SessionState
 from app.agents.coding_agent import coding_agent, AgentState
 from langchain_core.messages import AIMessage, ToolMessage, BaseMessage, HumanMessage, SystemMessage
+from app.core.config import get_settings
 
 
 router = APIRouter()
 
-sessions: Dict[str, SessionState] = {}
+# Fix: Use file-based session persistence
+SESSIONS_DIR = Path(get_settings().workspace_dir).parent / "sessions"
+SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def get_session_file(session_id: str) -> Path:
+    return SESSIONS_DIR / f"{session_id}.pkl"
+
+
+def load_session(session_id: str) -> Optional[SessionState]:
+    session_file = get_session_file(session_id)
+    if session_file.exists():
+        try:
+            with open(session_file, "rb") as f:
+                return pickle.load(f)
+        except Exception as e:
+            print(f"Failed to load session {session_id}: {e}")
+    return None
+
+
+def save_session(session: SessionState) -> None:
+    session_file = get_session_file(session.session_id)
+    try:
+        with open(session_file, "wb") as f:
+            pickle.dump(session, f)
+    except Exception as e:
+        print(f"Failed to save session {session.session_id}: {e}")
+
+
+def delete_session_file(session_id: str) -> None:
+    session_file = get_session_file(session_id)
+    if session_file.exists():
+        try:
+            session_file.unlink()
+        except Exception as e:
+            print(f"Failed to delete session file {session_id}: {e}")
 
 
 def get_or_create_session(session_id: str = None) -> SessionState:
-    if session_id and session_id in sessions:
-        return sessions[session_id]
+    if session_id:
+        session = load_session(session_id)
+        if session:
+            return session
     new_id = session_id or str(uuid.uuid4())
     session = SessionState(session_id=new_id)
-    sessions[new_id] = session
+    save_session(session)
     return session
 
 
@@ -48,7 +90,18 @@ def langchain_to_chat(msg: BaseMessage) -> ChatMessage | None:
             tool_call_id=msg.tool_call_id,
             tool_name=msg.name,
         )
-    return None
+    # Fix: Return a default message for unsupported types
+    return ChatMessage(
+        role=MessageRole.SYSTEM,
+        content="Unsupported message type",
+        type=MessageType.TEXT,
+    )
+
+
+# Fix: Add Pydantic model for WebSocket messages
+class WSRequest(BaseModel):
+    message: str
+    context: Dict = {}
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -61,6 +114,7 @@ async def chat(request: ChatRequest):
         type=MessageType.TEXT,
     )
     session.messages.append(user_message)
+    save_session(session)
     
     lc_messages = [chat_to_langchain(m) for m in session.messages]
     
@@ -91,7 +145,7 @@ async def chat(request: ChatRequest):
             type=MessageType.TEXT,
         )
     
-    sessions[session.session_id] = session
+    save_session(session)
     
     return ChatResponse(
         session_id=session.session_id,
@@ -108,14 +162,23 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
     try:
         while True:
             data = await websocket.receive_text()
-            request = json.loads(data)
+            try:
+                # Fix: Validate WebSocket message structure
+                request = WSRequest(**json.loads(data))
+            except Exception as e:
+                await websocket.send_text(json.dumps({
+                    "type": "error",
+                    "error": f"Invalid message format: {str(e)}",
+                }))
+                continue
             
             user_message = ChatMessage(
                 role=MessageRole.USER,
-                content=request.get("message", ""),
+                content=request.message,
                 type=MessageType.TEXT,
             )
             session.messages.append(user_message)
+            save_session(session)
             
             await websocket.send_text(json.dumps({
                 "type": "message",
@@ -127,7 +190,7 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
             agent_state = AgentState(
                 messages=lc_messages,
                 session_id=session.session_id,
-                context=request.get("context", {}),
+                context=request.context,
             )
             
             async for chunk in coding_agent.astream(agent_state):
@@ -148,6 +211,7 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
                                 chat_msg = langchain_to_chat(msg)
                                 if chat_msg:
                                     session.messages.append(chat_msg)
+                                    save_session(session)
                                     await websocket.send_text(json.dumps({
                                         "type": "message",
                                         "message": chat_msg.model_dump(),
@@ -158,6 +222,7 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
                                 chat_msg = langchain_to_chat(msg)
                                 if chat_msg:
                                     session.messages.append(chat_msg)
+                                    save_session(session)
                                     await websocket.send_text(json.dumps({
                                         "type": "tool_result",
                                         "tool_result": chat_msg.model_dump(),
@@ -166,6 +231,7 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
             await websocket.send_text(json.dumps({"type": "done"}))
             
     except WebSocketDisconnect:
+        save_session(session)
         pass
     except Exception as e:
         await websocket.send_text(json.dumps({
@@ -176,18 +242,26 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
 
 @router.get("/sessions/{session_id}")
 async def get_session(session_id: str):
-    if session_id not in sessions:
+    session = load_session(session_id)
+    if not session:
         raise HTTPException(status_code=404, detail="Session not found")
-    return sessions[session_id]
+    return session
 
 
 @router.delete("/sessions/{session_id}")
 async def delete_session(session_id: str):
-    if session_id in sessions:
-        del sessions[session_id]
+    delete_session_file(session_id)
     return {"status": "deleted"}
 
 
 @router.get("/sessions")
 async def list_sessions():
-    return [{"session_id": sid, "message_count": len(s.messages)} for sid, s in sessions.items()]
+    sessions = []
+    for session_file in SESSIONS_DIR.glob("*.pkl"):
+        try:
+            with open(session_file, "rb") as f:
+                session = pickle.load(f)
+                sessions.append({"session_id": session.session_id, "message_count": len(session.messages)})
+        except Exception as e:
+            print(f"Failed to load session {session_file}: {e}")
+    return sessions

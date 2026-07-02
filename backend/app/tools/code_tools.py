@@ -51,10 +51,11 @@ class CodeTool:
         except Exception as e:
             return {"output": "", "error": str(e), "exit_code": -1}
         finally:
+            # Fix: Log cleanup errors
             try:
                 os.unlink(temp_path)
-            except:
-                pass
+            except Exception as e:
+                print(f"Failed to clean up temp file {temp_path}: {e}")
 
     def _execute_javascript(self, params: CodeExecuteParams) -> Dict[str, Any]:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".js", delete=False, dir=self.workspace) as f:
@@ -79,16 +80,24 @@ class CodeTool:
         except Exception as e:
             return {"output": "", "error": str(e), "exit_code": -1}
         finally:
+            # Fix: Log cleanup errors
             try:
                 os.unlink(temp_path)
-            except:
-                pass
+            except Exception as e:
+                print(f"Failed to clean up temp file {temp_path}: {e}")
 
     def _execute_bash(self, params: CodeExecuteParams) -> Dict[str, Any]:
+        # Fix: Use shell=False and split the command to prevent shell injection
+        # Note: This may break multi-command scripts (e.g., "cd /tmp && ls")
+        # For security, we disallow shell=True and require users to use explicit commands
         try:
+            # Split the command into a list of arguments
+            args = shlex.split(params.code)
+            if not args:
+                return {"output": "", "error": "Empty command", "exit_code": -1}
             result = subprocess.run(
-                params.code,
-                shell=True,
+                args,
+                shell=False,  # Fix: Disable shell=True to prevent injection
                 capture_output=True,
                 text=True,
                 timeout=params.timeout,

@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings
 from pydantic import Field
 from functools import lru_cache
+from pathlib import Path
 
 
 class Settings(BaseSettings):
@@ -14,7 +15,11 @@ class Settings(BaseSettings):
     port: int = Field(default=8000, validation_alias="PORT")
     debug: bool = Field(default=True, validation_alias="DEBUG")
 
-    workspace_dir: str = Field(default="./workspace", validation_alias="WORKSPACE_DIR")
+    # Fix: Use absolute path for workspace directory
+    workspace_dir: str = Field(
+        default=str(Path(__file__).parent.parent.parent / "workspace"),
+        validation_alias="WORKSPACE_DIR"
+    )
 
     ws_heartbeat_interval: int = Field(default=30, validation_alias="WS_HEARTBEAT_INTERVAL")
 

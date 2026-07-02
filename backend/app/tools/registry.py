@@ -1,7 +1,7 @@
 from typing import Dict, Any, Callable, List
 from pydantic import BaseModel
 from langchain_core.tools import BaseTool, StructuredTool
-from app.tools.file_tools import file_tool, FileReadParams, FileWriteParams, FileListParams
+from app.tools.file_tools import file_tool, FileReadParams, FileWriteParams, FileListParams, FileDeleteParams
 from app.tools.code_tools import code_tool, CodeExecuteParams
 from app.tools.search_tools import search_tool, SearchParams
 
@@ -32,6 +32,12 @@ def create_file_tools() -> List[StructuredTool]:
             name="list_files",
             description="List files in a directory",
             args_schema=FileListParams,
+        ),
+        StructuredTool.from_function(
+            func=file_tool.delete,
+            name="delete_file",
+            description="Delete a file or directory in the workspace",
+            args_schema=FileDeleteParams,
         ),
     ]
 
@@ -84,6 +90,12 @@ TOOL_DEFINITIONS = {
         description="List files in a directory",
         params_schema=FileListParams.model_json_schema(),
         function=file_tool.list,
+    ),
+    "delete_file": ToolDefinition(
+        name="delete_file",
+        description="Delete a file or directory in the workspace",
+        params_schema=FileDeleteParams.model_json_schema(),
+        function=file_tool.delete,
     ),
     "execute_code": ToolDefinition(
         name="execute_code",

@@ -36,17 +36,22 @@ Be concise but thorough. Explain your approach before taking action."""
 
 def get_llm():
     settings = get_settings()
+    # Fix: Add timeout and max_retries for LLM calls
     if settings.llm_provider == "anthropic":
         return ChatAnthropic(
             model=settings.llm_model,
             api_key=settings.anthropic_api_key,
             temperature=0.1,
+            timeout=60,  # 60 seconds timeout
+            max_retries=3,
         )
     return ChatOpenAI(
         model=settings.llm_model,
         api_key=settings.openai_api_key,
         base_url=settings.openai_base_url,
         temperature=0.1,
+        timeout=60,  # 60 seconds timeout
+        max_retries=3,
     )
 
 

@@ -6,19 +6,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 class Settings(BaseSettings):
-    SECRET_KEY: str = "django-insecure-dev-key-change-in-production"
-    DEBUG: bool = True
-    ALLOWED_HOSTS: list = ["*"]
+    SECRET_KEY: str = os.getenv("DJANGO_SECRET_KEY", "django-insecure-dev-key-change-in-production")
+    DEBUG: bool = os.getenv("DJANGO_DEBUG", "True").lower() == "true"
+    ALLOWED_HOSTS: list = os.getenv("DJANGO_ALLOWED_HOSTS", "*").split(",")
     
-    HF_TOKEN: str = ""
-    HF_MODEL: str = "meta-llama/Meta-Lama-3.1-8B-Instruct"
-    HF_DEVICE: str = "auto"
+    HF_TOKEN: str = os.getenv("HF_TOKEN", "")
+    HF_MODEL: str = os.getenv("HF_MODEL", "meta-llama/Meta-Llama-3.1-8B-Instruct")
+    HF_DEVICE: str = os.getenv("HF_DEVICE", "auto")
     
-    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     
-    CORS_ALLOWED_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
+    CORS_ALLOWED_ORIGINS: str = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
     
-    WORKSPACE_DIR: str = str(BASE_DIR / "workspace")
+    WORKSPACE_DIR: str = os.getenv("WORKSPACE_DIR", str(BASE_DIR / "workspace"))
     
     class Config:
         env_file = BASE_DIR / ".env"
@@ -104,6 +104,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
 }
 
+# Fix: Ensure CORS_ALLOWED_ORIGINS is a list
 CORS_ALLOWED_ORIGINS = [o.strip() for o in settings.CORS_ALLOWED_ORIGINS.split(",") if o.strip()]
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in settings.CORS_ALLOWED_ORIGINS.split(",") if o.strip()]
 CORS_ALLOW_CREDENTIALS = True
