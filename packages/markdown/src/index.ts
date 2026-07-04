@@ -1,0 +1,1 @@
+export { MarkdownEditor } from '@learning-platform/editor';

@@ -1,0 +1,443 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["extendedWhereUnique", "fullTextSearch"]
+}
+
+generator vector {
+  provider = "prisma-pgvector"
+}
+
+enum UserRole {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum LessonType {
+  MARKDOWN
+  VIDEO
+  INTERACTIVE
+  QUIZ
+  PRACTICE
+  PROJECT
+}
+
+enum DifficultyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SHORT_ANSWER
+  CODE
+  FILL_IN_BLANK
+  MATCHING
+  ORDERING
+}
+
+enum SessionType {
+  CHAT
+  CODING
+  REVIEW
+  QUIZ
+  DEBUG
+  RESEARCH
+}
+
+enum AgentType {
+  TUTOR
+  CODING
+  REVIEWER
+  PLANNER
+  QUIZ
+  DEBUGGER
+  RESEARCH
+  MEMORY
+  ORCHESTRATOR
+}
+
+enum MemoryType {
+  SHORT_TERM
+  LONG_TERM
+  EPISODIC
+  SEMANTIC
+  PROCEDURAL
+}
+
+model User {
+  id            String     @id @default(cuid())
+  email         String     @unique
+  name          String
+  role          UserRole   @default(STUDENT)
+  avatarUrl     String?
+  clerkId       String?    @unique
+  lastLoginAt   DateTime?
+  isActive      Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  courses       Course[]
+  enrollments   Enrollment[]
+  progress      Progress[]
+  sessions      Session[]
+  submissions   Submission[]
+  memories      Memory[]
+  aiInteractions AIInteraction[]
+  analytics     Analytics[]
+
+  @@index([email])
+  @@index([role])
+  @@index([clerkId])
+  @@map("users")
+}
+
+model Course {
+  id                String       @id @default(cuid())
+  title             String
+  description       String
+  thumbnailUrl      String?
+  category          String
+  difficulty        DifficultyLevel
+  estimatedHours    Int          @default(0)
+  status            CourseStatus @default(DRAFT)
+  instructorId      String
+  instructor        User         @relation(fields: [instructorId], references: [id])
+  prerequisites     String[]
+  tags              String[]
+  learningObjectives String[]
+  enrollmentCount   Int          @default(0)
+  rating            Float        @default(0)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  lessons           Lesson[]
+  enrollments       Enrollment[]
+  quizzes           Quiz[]
+  practiceProblems  PracticeProblem[]
+  progress          Progress[]
+
+  @@index([instructorId])
+  @@index([category])
+  @@index([status])
+  @@index([difficulty])
+  @@map("courses")
+}
+
+model Lesson {
+  id              String       @id @default(cuid())
+  title           String
+  content         String
+  order           Int
+  courseId         String
+  course          Course       @relation(fields: [courseId], references: [id])
+  type            LessonType
+  durationMinutes Int          @default(10)
+  isPublished     Boolean      @default(false)
+  metadata        Json         @default("{}")
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  quizzes         Quiz[]
+  practiceProblems PracticeProblem[]
+  progress        Progress[]
+
+  @@index([courseId])
+  @@index([courseId, order])
+  @@map("lessons")
+}
+
+model Enrollment {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  courseId       String
+  course        Course    @relation(fields: [courseId], references: [id])
+  progress      Float     @default(0)
+  enrolledAt    DateTime  @default(now())
+  completedAt   DateTime?
+  isActive      Boolean   @default(true)
+  metadata      Json      @default("{}")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@map("enrollments")
+}
+
+model Quiz {
+  id              String       @id @default(cuid())
+  title           String
+  description     String?
+  lessonId         String?
+  lesson          Lesson?      @relation(fields: [lessonId], references: [id])
+  courseId         String?
+  course          Course?      @relation(fields: [courseId], references: [id])
+  timeLimitMinutes Int?
+  passingScore    Float        @default(70)
+  maxAttempts     Int          @default(3)
+  isPublished     Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  questions       Question[]
+  submissions     Submission[]
+
+  @@index([lessonId])
+  @@index([courseId])
+  @@map("quizzes")
+}
+
+model Question {
+  id            String       @id @default(cuid())
+  quizId        String
+  quiz          Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  type          QuestionType
+  prompt        String
+  options       String[]?
+  correctAnswer String
+  explanation   String?
+  points        Int          @default(1)
+  difficulty    DifficultyLevel @default(INTERMEDIATE)
+  tags          String[]
+  order         Int          @default(0)
+  metadata      Json         @default("{}")
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  submissions   Submission[]
+
+  @@index([quizId])
+  @@map("questions")
+}
+
+model PracticeProblem {
+  id              String       @id @default(cuid())
+  title           String
+  description     String
+  difficulty      DifficultyLevel
+  category        String
+  starterCode     String?
+  solutionCode    String?
+  testCases       Json         @default("[]")
+  hints           String[]
+  lessonId        String?
+  lesson          Lesson?      @relation(fields: [lessonId], references: [id])
+  courseId        String?
+  course          Course?      @relation(fields: [courseId], references: [id])
+  tags            String[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([lessonId])
+  @@index([courseId])
+  @@index([difficulty])
+  @@map("practice_problems")
+}
+
+model Submission {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  quizId       String?
+  quiz        Quiz?        @relation(fields: [quizId], references: [id])
+  questionId   String?
+  question    Question?    @relation(fields: [questionId], references: [id])
+  practiceProblemId String?
+  answer      String
+  score       Float?
+  maxScore    Float?
+  status      String       @default("PENDING")
+  feedback    String?
+  executionResult Json?
+  timeSpentMs Int?
+  attemptNumber Int        @default(1)
+  submittedAt DateTime     @default(now())
+  gradedAt    DateTime?
+  gradedBy    String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([quizId])
+  @@index([questionId])
+  @@map("submissions")
+}
+
+model Progress {
+  id                  String    @id @default(cuid())
+  userId              String
+  user                User      @relation(fields: [userId], references: [id])
+  lessonId             String?
+  lesson              Lesson?   @relation(fields: [lessonId], references: [id])
+  courseId              String?
+  course              Course?   @relation(fields: [courseId], references: [id])
+  completionPercentage Float     @default(0)
+  timeSpentMinutes    Int       @default(0)
+  lastAccessedAt      DateTime  @default(now())
+  metadata            Json      @default("{}")
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([userId, lessonId], unique: true)
+  @@index([userId, courseId])
+  @@map("progress")
+}
+
+model Session {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  type          SessionType
+  title         String?
+  agentType     AgentType?
+  context       Json        @default("{}")
+  status        String      @default("ACTIVE")
+  messageCount  Int         @default(0)
+  startedAt     DateTime    @default(now())
+  endedAt       DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  messages      Message[]
+  interactions  AIInteraction[]
+  memories      Memory[]
+
+  @@index([userId])
+  @@index([userId, type])
+  @@index([status])
+  @@map("sessions")
+}
+
+model Message {
+  id          String    @id @default(cuid())
+  sessionId    String
+  session     Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role        String
+  content     String
+  toolCalls   Json?
+  toolResults Json?
+  metadata    Json      @default("{}")
+  timestamp   DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+
+  @@index([sessionId])
+  @@index([sessionId, timestamp])
+  @@map("messages")
+}
+
+model AIInteraction {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id])
+  sessionId     String
+  session      Session   @relation(fields: [sessionId], references: [id])
+  agentType    AgentType
+  prompt       String
+  response     String
+  tokensUsed   Int       @default(0)
+  model        String?
+  latencyMs    Int?
+  feedback     Int?
+  metadata     Json      @default("{}")
+  timestamp    DateTime  @default(now())
+  createdAt    DateTime  @default(now())
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([userId, agentType])
+  @@index([timestamp])
+  @@map("ai_interactions")
+}
+
+model Memory {
+  id            String     @id @default(cuid())
+  userId        String?
+  user          User?      @relation(fields: [userId], references: [id])
+  sessionId      String?
+  session       Session?   @relation(fields: [sessionId], references: [id])
+  type          MemoryType
+  content       String
+  embeddingId    String?
+  metadata      Json       @default("{}")
+  importance    Float      @default(0.5)
+  accessCount   Int        @default(0)
+  lastAccessedAt DateTime  @default(now())
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([type])
+  @@index([importance])
+  @@map("memories")
+}
+
+model Embedding {
+  id          String   @id @default(cuid())
+  documentId   String
+  model       String
+  dimensions  Int
+  content     String
+  vector      Unsupported("vector(1536)")
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  @@index([documentId])
+  @@index([model])
+  @@map("embeddings")
+}
+
+model Document_ {
+  id          String   @id @default(cuid())
+  contentType String
+  source      String
+  title       String
+  content     String
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  embeddings  Embedding[]
+
+  @@index([contentType])
+  @@index([source])
+  @@map("documents")
+}
+
+model Analytics {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  eventType String
+  eventData Json     @default("{}")
+  sessionId  String?
+  ip        String?
+  userAgent String?
+  timestamp DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([timestamp])
+  @@index([userId, eventType])
+  @@map("analytics")
+}

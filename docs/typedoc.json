@@ -1,0 +1,8 @@
+{
+  "sources": ["src/**/*.ts"],
+  "destination": "docs/api",
+  "entryPoint": "src/index.ts",
+  "plugins": [],
+  "title": "Learning Platform API",
+  "version": "1.0.0"
+}
