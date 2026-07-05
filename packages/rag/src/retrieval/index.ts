@@ -1,5 +1,9 @@
 import type { VectorSearchResult } from '@learning-platform/shared';
 
+function toResult(item: { id: string; score: number; content?: string; metadata?: Record<string, unknown> }): VectorSearchResult {
+  return { id: item.id, score: item.score, content: item.content ?? '', metadata: item.metadata ?? {} };
+}
+
 export class VectorRetriever {
   async retrieve(queryEmbedding: number[], topK: number = 10): Promise<VectorSearchResult[]> {
     return this.queryVectorDB(queryEmbedding, topK);
@@ -11,7 +15,7 @@ export class VectorRetriever {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ embedding, topK }),
     });
-    return response.json();
+    return (await response.json()) as VectorSearchResult[];
   }
 }
 
@@ -27,7 +31,7 @@ export class KeywordRetriever {
       }, 0);
       if (score > 0) scores.push({ id: doc.id, score });
     }
-    return scores.sort((a, b) => b.score - a.score).slice(0, 10).map(s => ({ id: s.id, score: s.score, content: '' }));
+    return scores.sort((a, b) => b.score - a.score).slice(0, 10).map(s => toResult({ id: s.id, score: s.score }));
   }
 }
 
@@ -41,8 +45,7 @@ export class HybridRetriever {
   async retrieve(query: string, queryEmbedding: number[], documents: Array<{ id: string; content: string }>): Promise<VectorSearchResult[]> {
     const vectorResults = await this.vectorRetriever.retrieve(queryEmbedding, 20);
     const keywordResults = this.keywordRetriever.retrieve(query, documents);
-    const fused = this.fuseResults(vectorResults, keywordResults);
-    return fused.slice(0, 10);
+    return this.fuseResults(vectorResults, keywordResults).slice(0, 10);
   }
 
   private fuseResults(vector: VectorSearchResult[], keyword: VectorSearchResult[]): VectorSearchResult[] {
@@ -53,7 +56,7 @@ export class HybridRetriever {
       if (existing) existing.keywordScore = r.score;
       else map.set(r.id, { vectorScore: 0, keywordScore: r.score });
     }
-    return Array.from(map.entries()).map(([id, scores]) => ({
+    return Array.from(map.entries()).map(([id, scores]) => toResult({
       id,
       score: this.alpha * scores.vectorScore + (1 - this.alpha) * scores.keywordScore,
     })).sort((a, b) => b.score - a.score);

@@ -23,8 +23,8 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
         input: texts,
       }),
     });
-    const data = await response.json();
-    return data.data.map((d: any) => d.embedding);
+    const data = (await response.json()) as { data: Array<{ embedding: number[] }> };
+    return data.data.map((d: { embedding: number[] }) => d.embedding);
   }
 }
 
@@ -42,7 +42,7 @@ export class LocalEmbeddingProvider implements EmbeddingProvider {
         prompt: texts[0],
       }),
     });
-    const data = await response.json();
+    const data = (await response.json()) as { embedding: number[] };
     return [data.embedding];
   }
 }
@@ -57,7 +57,3 @@ export function createEmbeddingProvider(provider: AIModelProvider, model?: strin
       return new OpenAIEmbeddingProvider();
   }
 }
-
-export * from './base';
-export * from './openai';
-export * from './local';

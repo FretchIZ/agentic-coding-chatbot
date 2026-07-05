@@ -1,28 +1,7 @@
 import { AIModelProvider } from '@learning-platform/shared';
-import type { AIMessage, ToolDefinition } from '@learning-platform/shared';
+import type { AIMessage, ToolDefinition, ModelConfig, ModelResponse } from '@learning-platform/shared';
 
-export interface ModelConfig {
-  provider: AIModelProvider;
-  model: string;
-  maxTokens: number;
-  temperature: number;
-  topP: number;
-  frequencyPenalty: number;
-  presencePenalty: number;
-  stop?: string[];
-}
-
-export interface ModelResponse {
-  content: string;
-  toolCalls?: Array<{ id: string; type: string; function: { name: string; arguments: string } }>;
-  usage: {
-    promptTokens: number;
-    completionTokens: number;
-    totalTokens: number;
-  };
-  model: string;
-  latencyMs: number;
-}
+export type { ModelConfig, ModelResponse };
 
 export abstract class BaseModel {
   abstract readonly provider: AIModelProvider;
@@ -44,6 +23,4 @@ export abstract class BaseModel {
   }
 }
 
-export * from './openai';
-export * from './claude';
-export * from './local';
+export { OpenAIModel } from './openai';

@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import { AIModelProvider } from '@learning-platform/shared';
 import type { AIMessage, ToolDefinition, ModelConfig, ModelResponse } from '@learning-platform/shared';
-import { BaseModel } from './base';
+import { BaseModel } from './index';
 
 export class OpenAIModel extends BaseModel {
   readonly provider = AIModelProvider.OPENAI;

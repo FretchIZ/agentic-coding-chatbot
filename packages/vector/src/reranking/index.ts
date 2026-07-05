@@ -1,14 +1,26 @@
 import type { VectorSearchResult } from '@learning-platform/shared';
 
+type ScoredResult = {
+  id: string;
+  score: number;
+  metadata: Record<string, unknown>;
+  content: string;
+};
+
+function toVectorSearchResult(r: ScoredResult): VectorSearchResult {
+  return { id: r.id, score: r.score, metadata: r.metadata, content: r.content };
+}
+
 export class CosineReRanker {
   rerank(queryEmbedding: number[], results: Array<{ id: string; embedding: number[]; metadata?: Record<string, unknown>; content: string }>): VectorSearchResult[] {
-    const scored = results.map(r => ({
-      id: r.id,
-      score: this.cosineSimilarity(queryEmbedding, r.embedding),
-      metadata: r.metadata,
-      content: r.content,
-    }));
-    return scored.sort((a, b) => b.score - a.score);
+    return results
+      .map(r => toVectorSearchResult({
+        id: r.id,
+        score: this.cosineSimilarity(queryEmbedding, r.embedding),
+        metadata: r.metadata ?? {},
+        content: r.content,
+      }))
+      .sort((a, b) => b.score - a.score);
   }
 
   private cosineSimilarity(a: number[], b: number[]): number {
@@ -21,13 +33,14 @@ export class CosineReRanker {
 
 export class L2ReRanker {
   rerank(queryEmbedding: number[], results: Array<{ id: string; embedding: number[]; metadata?: Record<string, unknown>; content: string }>): VectorSearchResult[] {
-    const scored = results.map(r => ({
-      id: r.id,
-      score: 1 / (1 + this.l2Distance(queryEmbedding, r.embedding)),
-      metadata: r.metadata,
-      content: r.content,
-    }));
-    return scored.sort((a, b) => b.score - a.score);
+    return results
+      .map(r => toVectorSearchResult({
+        id: r.id,
+        score: 1 / (1 + this.l2Distance(queryEmbedding, r.embedding)),
+        metadata: r.metadata ?? {},
+        content: r.content,
+      }))
+      .sort((a, b) => b.score - a.score);
   }
 
   private l2Distance(a: number[], b: number[]): number {
@@ -37,12 +50,13 @@ export class L2ReRanker {
 
 export class DotProductReRanker {
   rerank(queryEmbedding: number[], results: Array<{ id: string; embedding: number[]; metadata?: Record<string, unknown>; content: string }>): VectorSearchResult[] {
-    const scored = results.map(r => ({
-      id: r.id,
-      score: queryEmbedding.reduce((sum, val, i) => sum + val * r.embedding[i], 0),
-      metadata: r.metadata,
-      content: r.content,
-    }));
-    return scored.sort((a, b) => b.score - a.score);
+    return results
+      .map(r => toVectorSearchResult({
+        id: r.id,
+        score: queryEmbedding.reduce((sum, val, i) => sum + val * r.embedding[i], 0),
+        metadata: r.metadata ?? {},
+        content: r.content,
+      }))
+      .sort((a, b) => b.score - a.score);
   }
 }

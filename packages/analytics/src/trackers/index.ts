@@ -76,7 +76,7 @@ export class EventTracker {
         body: JSON.stringify({ events }),
       });
     } catch (error) {
-      logger.warn('Failed to flush analytics events', { count: events.length });
+      logger.warn('Failed to flush analytics events', { metadata: { count: events.length } });
       this.buffer.unshift(...events.slice(-50));
     }
   }

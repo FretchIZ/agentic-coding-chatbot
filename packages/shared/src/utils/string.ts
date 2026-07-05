@@ -1,9 +1,11 @@
+declare const crypto: { randomUUID: () => string };
+
 export const stringUtils = {
   generateId: (prefix = 'id'): string => 
     `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
   
   generateUUID: (): string => 
-    crypto.randomUUID(),
+    globalThis.crypto.randomUUID(),
   
   slugify: (text: string): string =>
     text

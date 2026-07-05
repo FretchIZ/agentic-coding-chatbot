@@ -1,6 +1,6 @@
-import type { UserRole, CourseStatus, LessonType, DifficultyLevel, QuestionType, SubmissionStatus, AIModelProvider, AgentType, SessionType, MemoryType, VectorDatabase, ChunkingStrategy, RetrievalMethod, RerankingMethod, AnalyticsEventType, NotificationType, CacheStrategy } from '../enums';
+import type { AIModelProvider, UserRole, CourseStatus, LessonType, DifficultyLevel, QuestionType, SubmissionStatus, AgentType, SessionType, MemoryType, VectorDatabase, ChunkingStrategy, RetrievalMethod, RerankingMethod, AnalyticsEventType, NotificationType, CacheStrategy } from '../enums';
 
-export type { UserRole, CourseStatus, LessonType, DifficultyLevel, QuestionType, SubmissionStatus, AIModelProvider, AgentType, SessionType, MemoryType, VectorDatabase, ChunkingStrategy, RetrievalMethod, RerankingMethod, AnalyticsEventType, NotificationType, CacheStrategy };
+export type { AIModelProvider, UserRole, CourseStatus, LessonType, DifficultyLevel, QuestionType, SubmissionStatus, AgentType, SessionType, MemoryType, VectorDatabase, ChunkingStrategy, RetrievalMethod, RerankingMethod, AnalyticsEventType, NotificationType, CacheStrategy };
 
 export type UUID = string & { readonly brand: unique symbol };
 export type ISODateString = string & { readonly brand: unique symbol };
@@ -164,3 +164,26 @@ export type RAGContext = {
   tokensUsed: number;
   model: string;
 };
+
+export interface ModelConfig {
+  provider: AIModelProvider;
+  model: string;
+  maxTokens: number;
+  temperature: number;
+  topP: number;
+  frequencyPenalty: number;
+  presencePenalty: number;
+  stop?: string[];
+}
+
+export interface ModelResponse {
+  content: string;
+  toolCalls?: Array<{ id: string; type: string; function: { name: string; arguments: string } }>;
+  usage: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+  model: string;
+  latencyMs: number;
+}

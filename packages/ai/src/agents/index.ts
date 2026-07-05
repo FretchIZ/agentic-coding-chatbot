@@ -1,6 +1,6 @@
 import { AgentType } from '@learning-platform/shared';
-import type { AIMessage, ToolDefinition, ModelResponse } from '@learning-platform/shared';
-import { BaseModel } from '../models/base';
+import type { AIMessage, ToolCall, ToolDefinition, ModelResponse } from '@learning-platform/shared';
+import { BaseModel } from '../models';
 import { Tool } from '../tools';
 import { logger } from '@learning-platform/shared';
 
@@ -13,7 +13,7 @@ export interface AgentConfig {
 }
 
 export abstract class BaseAgent {
-  protected config: AgentConfig;
+  config: AgentConfig;
   protected conversation: AIMessage[] = [];
 
   constructor(config: AgentConfig) {
@@ -34,7 +34,7 @@ export abstract class BaseAgent {
       const response = await this.config.model.generate(this.conversation, this.getToolDefinitions());
       if (response.toolCalls?.length) {
         for (const tc of response.toolCalls) {
-          this.conversation.push({ role: 'assistant', content: '', toolCalls: [tc] });
+          this.conversation.push({ role: 'assistant', content: '', toolCalls: [tc as ToolCall] });
           const tool = this.config.tools.find(t => t.definition.function.name === tc.function.name);
           if (tool) {
             try {
@@ -42,7 +42,7 @@ export abstract class BaseAgent {
               const result = await tool.execute(args);
               this.conversation.push({ role: 'tool', content: JSON.stringify(result), toolCallId: tc.id });
             } catch (error) {
-              logger.error('Tool execution failed', error as Error, { tool: tc.function.name });
+              logger.error('Tool execution failed', error as Error, { metadata: { tool: tc.function.name } });
               this.conversation.push({ role: 'tool', content: `Error: ${error}`, toolCallId: tc.id });
             }
           }

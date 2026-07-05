@@ -1,5 +1,4 @@
-import { CHUNK_DEFAULTS } from '@learning-platform/shared';
-import type { ChunkingStrategy } from '@learning-platform/shared';
+import { CHUNK_DEFAULTS, ChunkingStrategy } from '@learning-platform/shared';
 
 export interface ChunkResult {
   chunks: string[];
@@ -8,7 +7,7 @@ export interface ChunkResult {
 
 export class TextChunker {
   constructor(
-    private strategy: ChunkingStrategy = 'paragraph',
+    private strategy: ChunkingStrategy = ChunkingStrategy.PARAGRAPH,
     private size: number = CHUNK_DEFAULTS.size,
     private overlap: number = CHUNK_DEFAULTS.overlap
   ) {}

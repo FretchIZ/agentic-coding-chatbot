@@ -1,5 +1,5 @@
 import { AIModelProvider } from '@learning-platform/shared';
-import type { ModelConfig } from '../models/base';
+import type { ModelConfig } from '@learning-platform/shared';
 
 export interface ProviderConfig {
   apiKey?: string;
@@ -50,6 +50,3 @@ export function getAvailableModels(provider: AIModelProvider): string[] {
   return providerConfigs[provider]?.models || [];
 }
 
-export * from './openai';
-export * from './anthropic';
-export * from './vercel';

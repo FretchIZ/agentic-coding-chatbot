@@ -88,7 +88,7 @@ export class ClerkProvider {
       });
       return response.ok;
     } catch (error) {
-      logger.error('Clerk session verification failed', error);
+      logger.error('Clerk session verification failed', error instanceof Error ? error : undefined);
       return false;
     }
   }
@@ -99,8 +99,9 @@ export class ClerkProvider {
         headers: { Authorization: `Bearer ${this.apiKey}` },
       });
       if (!response.ok) return null;
-      const data = await response.json();
-      return { id: data.id, email: data.email_addresses[0]?.email_address || '', name: `${data.first_name || ''} ${data.last_name || ''}`.trim(), role: data.public_metadata?.role || 'student' };
+      const data: Record<string, unknown> = (await response.json()) as Record<string, unknown>;
+      const emailAddresses = data.email_addresses as Array<Record<string, unknown>> | undefined;
+      return { id: data.id as string, email: (emailAddresses?.[0]?.email_address as string) || '', name: `${data.first_name || ''} ${data.last_name || ''}`.trim(), role: (data.public_metadata as Record<string, unknown>)?.role as string || 'student' };
     } catch {
       return null;
     }

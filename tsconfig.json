@@ -4,6 +4,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "lib": ["ES2022"],
+    "jsx": "react-jsx",
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -11,22 +12,7 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
-    "baseUrl": ".",
-    "paths": {
-      "@learning-platform/*": ["packages/*/src"],
-      "@learning-platform/ui": ["packages/ui/src"],
-      "@learning-platform/auth": ["packages/auth/src"],
-      "@learning-platform/database": ["packages/database/src"],
-      "@learning-platform/editor": ["packages/editor/src"],
-      "@learning-platform/markdown": ["packages/markdown/src"],
-      "@learning-platform/ai": ["packages/ai/src"],
-      "@learning-platform/vector": ["packages/vector/src"],
-      "@learning-platform/rag": ["packages/rag/src"],
-      "@learning-platform/workflows": ["packages/workflows/src"],
-      "@learning-platform/analytics": ["packages/analytics/src"],
-      "@learning-platform/shared": ["packages/shared/src"]
-    }
+    "noEmit": true
   },
-  "exclude": ["node_modules", "dist", "build", ".next", ".turbo"]
+  "exclude": ["node_modules", "dist", "build", ".next", ".turbo", "apps", "packages"]
 }

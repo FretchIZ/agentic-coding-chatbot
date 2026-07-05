@@ -32,9 +32,9 @@ export class CodeExecutorTool implements Tool {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ language, code, timeout }),
       });
-      return await response.json();
+      return (await response.json()) as CodeExecutionResult;
     } catch (error) {
-      logger.error('Code execution failed', error as Error, { language });
+      logger.error('Code execution failed', error as Error, { metadata: { language } });
       return { success: false, output: '', error: 'Execution service unavailable', executionTimeMs: 0, memoryUsedMb: 0, exitCode: 1 };
     }
   }
@@ -66,10 +66,10 @@ export class FileReaderTool implements Tool {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path, maxSize }),
       });
-      const data = await response.json();
+      const data = (await response.json()) as { content: string };
       return data.content;
     } catch (error) {
-      logger.error('File read failed', error as Error, { path });
+      logger.error('File read failed', error as Error, { metadata: { path } });
       return `Error reading file: ${path}`;
     }
   }
@@ -100,10 +100,10 @@ export class WebSearchTool implements Tool {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, maxResults }),
       });
-      const data = await response.json();
+      const data = (await response.json()) as { results: unknown[] };
       return JSON.stringify(data.results);
     } catch (error) {
-      logger.error('Web search failed', error as Error, { query });
+      logger.error('Web search failed', error as Error, { metadata: { query } });
       return 'Search service unavailable';
     }
   }
@@ -171,4 +171,3 @@ export function createDefaultTools(): Tool[] {
   ];
 }
 
-export { ToolRegistry } from './registry';

@@ -23,7 +23,7 @@ export class AuthMiddleware {
       const user = this.verifyToken(token);
       return { authorized: true, user };
     } catch (error) {
-      logger.warn('Token verification failed', error);
+      logger.warn('Token verification failed', { metadata: { error: error instanceof Error ? error.message : String(error) } });
       return { authorized: false, error: 'Invalid or expired token' };
     }
   }

@@ -34,7 +34,7 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date()
 app.use(errorHandler);
 
 wss.on('connection', (ws, req) => {
-  logger.info('WebSocket client connected', { ip: req.socket.remoteAddress });
+  logger.info('WebSocket client connected', { metadata: { ip: req.socket.remoteAddress } });
   ws.on('message', (data) => {
     try {
       const message = JSON.parse(data.toString());

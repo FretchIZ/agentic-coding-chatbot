@@ -1,5 +1,7 @@
+declare const crypto: { randomUUID: () => string; getRandomValues: (arr: Uint8Array) => void };
+
 export const cryptoUtils = {
-  generateUUID: (): string => crypto.randomUUID ? crypto.randomUUID() : self.crypto.randomUUID(),
+  generateUUID: (): string => crypto.randomUUID(),
 
   generateId: (length = 16, prefix = ''): string => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -27,7 +29,7 @@ export const cryptoUtils = {
 
   generateToken: (): string => {
     const bytes = new Uint8Array(32);
-    crypto.getRandomValues ? crypto.getRandomValues(bytes) : self.crypto.getRandomValues(bytes);
+    crypto.getRandomValues(bytes);
     return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
   },
 

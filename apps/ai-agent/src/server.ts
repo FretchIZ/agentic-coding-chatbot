@@ -19,7 +19,7 @@ app.post('/api/agent/process', async (req, res) => {
     const result = await orchestrator.processQuery(query, sessionId, agentType);
     res.json(result);
   } catch (error) {
-    logger.error('Agent processing error', error);
+    logger.error('Agent processing error', error instanceof Error ? error : new Error(String(error)));
     res.status(500).json({ error: 'Processing failed' });
   }
 });
@@ -39,7 +39,7 @@ app.post('/api/agent/sessions/:sessionId/cancel', (req, res) => {
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'ai-agent', timestamp: new Date().toISOString() }));
 
 wss.on('connection', (ws, req) => {
-  logger.info('Agent WebSocket connected', { ip: req.socket.remoteAddress });
+  logger.info('Agent WebSocket connected', { metadata: { ip: req.socket.remoteAddress } });
   ws.on('message', async (data) => {
     try {
       const message = JSON.parse(data.toString());

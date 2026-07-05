@@ -9,7 +9,7 @@ export const arrayUtils = {
   },
   
   flatten: <T>(array: (T | T[])[]): T[] => 
-    array.flat(Infinity),
+    array.flat(Infinity) as T[],
   
   unique: <T>(array: T[]): T[] => 
     [...new Set(array)],
@@ -111,9 +111,15 @@ export const arrayUtils = {
   dropRight: <T>(array: T[], n: number): T[] => 
     array.slice(0, -n),
   
-  partition: <T>(array: T[], predicate: (item: T) => boolean): [T[], T[]] => 
-    array.reduce<[T[], T[]]>(([pass, fail], item) => 
-      predicate(item) ? [...pass, item] : [pass, [...fail, item]], [[], []]),
+  partition: <T>(array: T[], predicate: (item: T) => boolean): [T[], T[]] => {
+    const pass: T[] = [];
+    const fail: T[] = [];
+    for (const item of array) {
+      if (predicate(item)) pass.push(item);
+      else fail.push(item);
+    }
+    return [pass, fail];
+  },
   
   frequency: <T>(array: T[]): Map<T, number> => 
     array.reduce((map, item) => map.set(item, (map.get(item) || 0) + 1), new Map()),

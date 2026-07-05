@@ -9,7 +9,7 @@ export interface AppError extends Error {
 export function errorHandler(err: AppError, _req: Request, res: Response, _next: NextFunction): void {
   const statusCode = err.statusCode || 500;
   const code = err.code || 'INTERNAL_ERROR';
-  logger.error(`Error ${statusCode}: ${err.message}`, { code, stack: err.stack });
+  logger.error(`Error ${statusCode}: ${err.message}`, err, { metadata: { code } });
   res.status(statusCode).json({
     error: { code, message: err.message || 'An unexpected error occurred' },
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),

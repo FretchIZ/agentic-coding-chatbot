@@ -6,24 +6,30 @@ export interface RetrieverConfig {
   includeMetadata?: boolean;
 }
 
+interface IndexItem {
+  id: string;
+  embedding: number[];
+  content: string;
+  metadata?: Record<string, unknown>;
+}
+
+function toResult(item: { id: string; score: number; metadata?: Record<string, unknown>; content: string }): VectorSearchResult {
+  return { id: item.id, score: item.score, metadata: item.metadata ?? {}, content: item.content };
+}
+
 export class SemanticRetriever {
   constructor(private config: RetrieverConfig = { topK: 10, minScore: 0.5 }) {}
 
-  async retrieve(
-    queryEmbedding: number[],
-    index: Array<{ id: string; embedding: number[]; content: string; metadata?: Record<string, unknown> }>,
-    filters?: Record<string, unknown>
-  ): Promise<VectorSearchResult[]> {
-    const scores: Array<{ id: string; score: number; metadata?: Record<string, unknown>; content: string }> = [];
-
+  async retrieve(queryEmbedding: number[], index: IndexItem[], filters?: Record<string, unknown>): Promise<VectorSearchResult[]> {
+    const results: VectorSearchResult[] = [];
     for (const item of index) {
       if (filters && !this.matchesFilters(item.metadata, filters)) continue;
       const score = this.cosineSimilarity(queryEmbedding, item.embedding);
       if (score >= this.config.minScore) {
-        scores.push({ id: item.id, score, metadata: item.metadata, content: item.content });
+        results.push(toResult({ id: item.id, score, metadata: item.metadata, content: item.content }));
       }
     }
-    return scores.sort((a, b) => b.score - a.score).slice(0, this.config.topK);
+    return results.sort((a, b) => b.score - a.score).slice(0, this.config.topK);
   }
 
   private cosineSimilarity(a: number[], b: number[]): number {
@@ -40,58 +46,41 @@ export class SemanticRetriever {
 }
 
 export class HybridRetriever {
-  constructor(
-    private semanticRetriever: SemanticRetriever,
-    private alpha: number = 0.5
-  ) {}
+  constructor(private semanticRetriever: SemanticRetriever, private alpha: number = 0.5) {}
 
-  async retrieve(
-    query: string,
-    queryEmbedding: number[],
-    index: Array<{ id: string; embedding: number[]; content: string; metadata?: Record<string, unknown> }>
-  ): Promise<VectorSearchResult[]> {
+  async retrieve(query: string, queryEmbedding: number[], index: IndexItem[]): Promise<VectorSearchResult[]> {
     const semanticResults = await this.semanticRetriever.retrieve(queryEmbedding, index);
     const keywordResults = this.keywordSearch(query, index);
-    const combined = this.fuseResults(semanticResults, keywordResults);
-    return combined.slice(0, 10);
+    return this.fuseResults(semanticResults, keywordResults).slice(0, 10);
   }
 
-  private keywordSearch(
-    query: string,
-    index: Array<{ id: string; content: string; metadata?: Record<string, unknown> }>
-  ): VectorSearchResult[] {
+  private keywordSearch(query: string, index: Array<{ id: string; content: string; metadata?: Record<string, unknown> }>): VectorSearchResult[] {
     const terms = query.toLowerCase().split(/\s+/).filter(t => t.length > 2);
     const results: VectorSearchResult[] = [];
     for (const item of index) {
       const content = item.content.toLowerCase();
-      const score = terms.reduce((sum, term) => {
-        const count = (content.match(new RegExp(term, 'g')) || []).length;
-        return sum + count;
-      }, 0) / terms.length;
-      if (score > 0) results.push({ id: item.id, score, metadata: item.metadata, content: item.content });
+      const score = terms.reduce((sum, term) => sum + (content.match(new RegExp(term, 'g')) || []).length, 0) / terms.length;
+      if (score > 0) results.push(toResult({ id: item.id, score, metadata: item.metadata, content: item.content }));
     }
     return results.sort((a, b) => b.score - a.score).slice(0, 10);
   }
 
-  private fuseResults(
-    semantic: VectorSearchResult[],
-    keyword: VectorSearchResult[]
-  ): VectorSearchResult[] {
-    const map = new Map<string, { semantic: number; keyword: number; metadata?: Record<string, unknown>; content: string }>();
+  private fuseResults(semantic: VectorSearchResult[], keyword: VectorSearchResult[]): VectorSearchResult[] {
+    const map = new Map<string, { semantic: number; keyword: number; metadata: Record<string, unknown>; content: string }>();
     for (const r of semantic) {
-      map.set(r.id, { semantic: r.score, keyword: 0, metadata: r.metadata, content: r.content });
+      map.set(r.id, { semantic: r.score, keyword: 0, metadata: r.metadata, content: r.content ?? '' });
     }
     for (const r of keyword) {
       const existing = map.get(r.id);
       if (existing) existing.keyword = r.score;
-      else map.set(r.id, { semantic: 0, keyword: r.score, metadata: r.metadata, content: r.content });
+      else map.set(r.id, { semantic: 0, keyword: r.score, metadata: r.metadata, content: r.content ?? '' });
     }
     return Array.from(map.entries()).map(([id, scores]) => ({
       id,
       score: this.alpha * scores.semantic + (1 - this.alpha) * scores.keyword,
       metadata: scores.metadata,
       content: scores.content,
-    })).sort((a, b) => b.score - a.score);
+    }));
   }
 }
 

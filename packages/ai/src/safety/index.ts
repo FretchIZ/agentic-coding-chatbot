@@ -88,7 +88,7 @@ export class SafetyManager {
     if (!inputCheck.passed) return inputCheck;
     const moderationCheck = this.moderator.check(input);
     if (!moderationCheck.passed) {
-      logger.warn('Input failed safety check', { flags: moderationCheck.flags });
+      logger.warn('Input failed safety check', { metadata: { flags: moderationCheck.flags } });
     }
     return moderationCheck;
   }
@@ -97,7 +97,7 @@ export class SafetyManager {
     const sanitized = this.moderator.sanitize(output);
     const check = this.outputValidator.validate(sanitized);
     if (!check.passed) {
-      logger.warn('Output failed safety check', { flags: check.flags });
+      logger.warn('Output failed safety check', { metadata: { flags: check.flags } });
     }
     return check;
   }

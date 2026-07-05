@@ -26,7 +26,7 @@ export class AgentRouter {
       const result = await this.orchestrator.processQuery(query, sessionId, agentType);
       return { type: 'result', ...result };
     } catch (error) {
-      logger.error('Query handler error', error);
+      logger.error('Query handler error', error instanceof Error ? error : new Error(String(error)));
       return { type: 'error', content: 'Failed to process query' };
     }
   }

@@ -20,9 +20,9 @@ export class ContextAssembler {
   assemble(chunks: VectorSearchResult[], maxTokens: number = 3000): string {
     let context = '';
     for (const chunk of chunks) {
-      const chunkTokens = chunk.content.split(/\s+/).length;
+      const chunkTokens = (chunk.content ?? '').split(/\s+/).length;
       if (context.split(/\s+/).length + chunkTokens > maxTokens) break;
-      context += (context ? '\n\n' : '') + chunk.content;
+      context += (context ? '\n\n' : '') + (chunk.content ?? '');
     }
     return context;
   }

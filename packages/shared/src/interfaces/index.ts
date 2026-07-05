@@ -1,3 +1,5 @@
+import type { UserRole, DifficultyLevel, CourseStatus, LessonType, QuestionType, AgentType, SessionType, MemoryType, VectorDatabase, ChunkingStrategy, RetrievalMethod, RerankingMethod, NotificationType } from '../enums';
+
 export interface BaseEntity {
   id: string;
   createdAt: Date;
