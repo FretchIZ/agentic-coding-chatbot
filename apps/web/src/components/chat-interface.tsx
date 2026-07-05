@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@codeagent/ui';
 import { generateId } from '@codeagent/shared';
 import { AgentManager, PlannerAgent, CoderAgent, ReviewerAgent, TesterAgent } from '@codeagent/agents';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Paperclip, X } from 'lucide-react';
 
 const manager = new AgentManager();
 manager.register(new PlannerAgent());
@@ -23,11 +24,24 @@ export default function ChatInterface() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const agents = useQuery({
     queryKey: ['agents'],
     queryFn: () => manager.getAllAgents(),
   });
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+    }
+    e.target.value = '';
+  };
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleSend = async () => {
     if (!input.trim() || isProcessing) return;
@@ -110,7 +124,34 @@ export default function ChatInterface() {
       </div>
 
       <div className="border-t p-4">
+        {files.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-2">
+            {files.map((file, i) => (
+              <div key={i} className="flex items-center gap-1 rounded-md border bg-muted px-2 py-1 text-xs">
+                <span className="max-w-[120px] truncate">{file.name}</span>
+                <button onClick={() => removeFile(i)} className="text-muted-foreground hover:text-foreground">
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="flex gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept=".pdf,.png,.jpg,.jpeg,.gif,.svg,.txt,.csv,.json,.ts,.tsx,.js,.jsx,.py,.md"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex h-10 w-10 items-center justify-center rounded-md border border-input bg-background text-muted-foreground hover:text-foreground"
+            type="button"
+          >
+            <Paperclip className="h-4 w-4" />
+          </button>
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
