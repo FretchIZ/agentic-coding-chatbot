@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@codeagent/ui';
+import { generateId } from '@codeagent/shared';
 import { AgentManager, PlannerAgent, CoderAgent, ReviewerAgent, TesterAgent } from '@codeagent/agents';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';

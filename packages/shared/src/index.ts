@@ -36,7 +36,11 @@ export function truncate(str: string, maxLength: number): string {
 }
 
 export function generateId(): string {
-  return crypto.randomUUID?.() ?? Math.random().toString(36).substring(2, 15);
+  let id: string;
+  do {
+    id = (crypto.randomUUID?.() ?? Math.random().toString(36).substring(2)).replace(/-/g, '').substring(0, 10);
+  } while (/[0-9]$/.test(id));
+  return id;
 }
 
 export function groupBy<T>(items: T[], keyFn: (item: T) => string): Record<string, T[]> {
