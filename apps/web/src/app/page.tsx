@@ -1,10 +1,13 @@
 import Link from 'next/link';
-import { currentUser } from '@clerk/nextjs/server';
 
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
-  const user = await currentUser();
+  let user = null;
+  if (process.env.CLERK_SECRET_KEY) {
+    const { currentUser } = await import('@clerk/nextjs/server');
+    user = await currentUser();
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
