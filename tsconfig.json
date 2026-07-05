@@ -15,12 +15,7 @@
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true,
     "jsx": "preserve",
-    "baseUrl": ".",
-    "paths": {
-      "@codeagent/*": ["packages/*/src"],
-      "@codeagent/ui": ["packages/ui/src"],
-      "@codeagent/ui/*": ["packages/ui/src/*"]
-    }
+    "noEmit": true
   },
   "exclude": ["node_modules", "dist", ".next"]
 }
