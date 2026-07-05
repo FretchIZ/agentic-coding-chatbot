@@ -1,20 +1,22 @@
 FROM node:20-alpine AS base
+RUN corepack enable && corepack prepare pnpm@9 --activate
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
-COPY package.json turbo.json ./
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json ./
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/ai/package.json ./packages/ai/
 COPY packages/vector/package.json ./packages/vector/
 COPY packages/rag/package.json ./packages/rag/
 COPY packages/workflows/package.json ./packages/workflows/
-RUN npm ci
+COPY apps/ai-agent/package.json ./apps/ai-agent/
+RUN pnpm install --frozen-lockfile
 
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npx turbo build --filter=ai-agent...
+RUN pnpm turbo build --filter=ai-agent...
 
 FROM base AS runner
 WORKDIR /app

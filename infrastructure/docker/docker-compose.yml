@@ -11,7 +11,7 @@ services:
       - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+      - ../../scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U app -d learning_platform']
       interval: 5s
@@ -28,7 +28,7 @@ services:
 
   api:
     build:
-      context: ..
+      context: ../..
       dockerfile: infrastructure/docker/api.Dockerfile
     ports:
       - '8000:8000'
@@ -46,7 +46,7 @@ services:
 
   ai-agent:
     build:
-      context: ..
+      context: ../..
       dockerfile: infrastructure/docker/ai-agent.Dockerfile
     ports:
       - '8001:8001'
@@ -60,7 +60,7 @@ services:
 
   web:
     build:
-      context: ..
+      context: ../..
       dockerfile: infrastructure/docker/web.Dockerfile
     ports:
       - '3000:3000'
@@ -73,7 +73,7 @@ services:
 
   admin:
     build:
-      context: ..
+      context: ../..
       dockerfile: infrastructure/docker/admin.Dockerfile
     ports:
       - '3001:3001'
@@ -89,8 +89,8 @@ services:
       - '80:80'
       - '443:443'
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./nginx/sites:/etc/nginx/sites-enabled
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ../nginx/sites:/etc/nginx/sites-enabled
     depends_on:
       - api
       - web

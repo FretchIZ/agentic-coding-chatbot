@@ -211,7 +211,7 @@ model Question {
   quiz          Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
   type          QuestionType
   prompt        String
-  options       String[]?
+  options       String[]
   correctAnswer String
   explanation   String?
   points        Int          @default(1)
