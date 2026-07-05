@@ -27,20 +27,32 @@ export interface AIProviderInterface {
   stream?(messages: ChatMessage[], config?: Partial<AIConfig>): AsyncIterable<string>;
 }
 
-export function createProvider(config: AIConfig): AIProviderInterface {
+export async function createProvider(config: AIConfig): Promise<AIProviderInterface> {
   switch (config.provider) {
-    case 'openai':
-      return new (require('./providers/openai').OpenAIProvider)(config);
-    case 'anthropic':
-      return new (require('./providers/anthropic').AnthropicProvider)(config);
-    case 'google':
-      return new (require('./providers/google').GoogleProvider)(config);
-    case 'deepseek':
-      return new (require('./providers/deepseek').DeepSeekProvider)(config);
-    case 'openrouter':
-      return new (require('./providers/openrouter').OpenRouterProvider)(config);
-    case 'ollama':
-      return new (require('./providers/ollama').OllamaProvider)(config);
+    case 'openai': {
+      const { OpenAIProvider } = await import('./providers/openai');
+      return new OpenAIProvider(config);
+    }
+    case 'anthropic': {
+      const { AnthropicProvider } = await import('./providers/anthropic');
+      return new AnthropicProvider(config);
+    }
+    case 'google': {
+      const { GoogleProvider } = await import('./providers/google');
+      return new GoogleProvider(config);
+    }
+    case 'deepseek': {
+      const { DeepSeekProvider } = await import('./providers/deepseek');
+      return new DeepSeekProvider(config);
+    }
+    case 'openrouter': {
+      const { OpenRouterProvider } = await import('./providers/openrouter');
+      return new OpenRouterProvider(config);
+    }
+    case 'ollama': {
+      const { OllamaProvider } = await import('./providers/ollama');
+      return new OllamaProvider(config);
+    }
     default:
       throw new Error(`Unknown provider: ${config.provider}`);
   }

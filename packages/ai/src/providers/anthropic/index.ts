@@ -1,6 +1,6 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
-import type { AIProviderInterface, AIConfig, ChatMessage, ChatCompletion } from '../index';
+import type { AIProviderInterface, AIConfig, ChatMessage, ChatCompletion } from '../../index';
 
 export class AnthropicProvider implements AIProviderInterface {
   private client: ReturnType<typeof createAnthropic>;
@@ -18,6 +18,6 @@ export class AnthropicProvider implements AIProviderInterface {
       maxTokens: config?.maxTokens || this.config.maxTokens,
       temperature: config?.temperature ?? this.config.temperature ?? 0.7,
     });
-    return { content: result.text, model: result.modelId ?? this.config.model, usage: result.usage };
+    return { content: result.text, model: this.config.model, usage: result.usage };
   }
 }
