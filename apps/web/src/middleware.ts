@@ -1,9 +1,22 @@
 import { NextResponse } from 'next/server';
+import type { NextRequest, NextFetchEvent } from 'next/server';
 
-export default function middleware() {
-  return NextResponse.next();
+export default async function middleware(request: NextRequest, event: NextFetchEvent) {
+  if (!process.env.CLERK_SECRET_KEY) {
+    return NextResponse.next();
+  }
+
+  const { clerkMiddleware, createRouteMatcher } = await import('@clerk/nextjs/server');
+  const isProtected = createRouteMatcher(['/chat(.*)', '/dashboard(.*)']);
+  const handler = clerkMiddleware((auth, req) => {
+    if (isProtected(req)) {
+      auth.protect();
+    }
+  });
+
+  return handler(request, event);
 }
 
 export const config = {
-  matcher: [],
+  matcher: ['/((?!_next|static|favicon.ico).*)'],
 };

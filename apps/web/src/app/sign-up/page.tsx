@@ -1,8 +1,16 @@
+'use client';
+
 import { SignUp } from '@clerk/nextjs';
 
-export const dynamic = 'force-dynamic';
-
 export default function SignUpPage() {
+  if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <p className="text-muted-foreground">Authentication not configured.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
