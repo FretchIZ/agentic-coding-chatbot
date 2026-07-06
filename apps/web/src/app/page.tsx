@@ -2,13 +2,7 @@ import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
-export default async function HomePage() {
-  let user = null;
-  if (process.env.CLERK_SECRET_KEY) {
-    const { currentUser } = await import('@clerk/nextjs/server');
-    user = await currentUser();
-  }
-
+export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b">
@@ -18,18 +12,8 @@ export default async function HomePage() {
             <span className="text-xl font-bold">CodeAgent</span>
           </div>
           <nav className="flex items-center gap-4">
-            {user ? (
-              <>
-                <Link href="/chat" className="text-sm text-muted-foreground hover:text-foreground">Chat</Link>
-                <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">Dashboard</Link>
-                <Link href="/sign-out" className="text-sm text-muted-foreground hover:text-foreground">Sign Out</Link>
-              </>
-            ) : (
-              <>
-                <Link href="/sign-in" className="text-sm text-muted-foreground hover:text-foreground">Sign In</Link>
-                <Link href="/sign-up" className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">Sign Up</Link>
-              </>
-            )}
+            <Link href="/sign-in" className="text-sm text-muted-foreground hover:text-foreground">Sign In</Link>
+            <Link href="/sign-up" className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">Sign Up</Link>
           </nav>
         </div>
       </header>
