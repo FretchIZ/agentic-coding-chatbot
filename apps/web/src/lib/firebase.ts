@@ -1,4 +1,5 @@
 const API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '';
+const STORAGE_KEY = 'fb_session';
 
 export type FirebaseUser = {
   uid: string;
@@ -25,10 +26,66 @@ function toUser(d: any): FirebaseUser {
   return { uid: d.localId, email: d.email || '', displayName: d.displayName || null, photoURL: d.photoUrl || null };
 }
 
+function saveSession(idToken: string, refreshToken: string) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ idToken, refreshToken })); } catch {}
+}
+
+function clearSession() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch {}
+}
+
+function loadSession(): { idToken: string; refreshToken: string } | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+// ── Init: restore session from localStorage ──
+
+export async function initAuth() {
+  if (typeof window === 'undefined') return null;
+  const session = loadSession();
+  if (!session) return null;
+  try {
+    // Verify token with Firebase and get user info
+    const data = await api('lookup', { idToken: session.idToken });
+    const user = data.users?.[0];
+    if (user) {
+      _user = toUser({ localId: user.localId, email: user.email, displayName: user.displayName, photoUrl: user.photoUrl });
+      notify();
+      return _user;
+    }
+  } catch {
+    // Token expired or invalid
+    try {
+      // Try refreshing
+      const refreshRes = await fetch(`https://securetoken.googleapis.com/v1/token?key=${API_KEY}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ grant_type: 'refresh_token', refresh_token: session.refreshToken }),
+      });
+      const refreshData = await refreshRes.json();
+      if (refreshData.id_token) {
+        saveSession(refreshData.id_token, refreshData.refresh_token);
+        const userData = await api('lookup', { idToken: refreshData.id_token });
+        const u = userData.users?.[0];
+        if (u) {
+          _user = toUser({ localId: u.localId, email: u.email, displayName: u.displayName, photoUrl: u.photoUrl });
+          notify();
+          return _user;
+        }
+      }
+    } catch {}
+  }
+  clearSession();
+  return null;
+}
+
 // ── Email / Password ──
 
 export async function signUpWithEmail(email: string, password: string) {
   const data = await api('signUp', { email, password, returnSecureToken: true });
+  saveSession(data.idToken, data.refreshToken);
   _user = toUser(data);
   notify();
   return _user;
@@ -36,6 +93,7 @@ export async function signUpWithEmail(email: string, password: string) {
 
 export async function signInWithEmail(email: string, password: string) {
   const data = await api('signInWithPassword', { email, password, returnSecureToken: true });
+  saveSession(data.idToken, data.refreshToken);
   _user = toUser(data);
   notify();
   return _user;
@@ -69,6 +127,7 @@ async function signInWithProvider(providerId: string, accessToken: string) {
     postBody: `access_token=${accessToken}&providerId=${providerId}`,
     returnSecureToken: true,
   });
+  saveSession(data.idToken, data.refreshToken);
   _user = toUser(data);
   notify();
   return _user;
@@ -78,7 +137,7 @@ async function signInWithProvider(providerId: string, accessToken: string) {
 
 export async function signInWithGoogle() {
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-  if (!clientId) throw new Error('Set NEXT_PUBLIC_GOOGLE_CLIENT_ID');
+  if (!clientId) throw new Error('Google sign-in: set NEXT_PUBLIC_GOOGLE_CLIENT_ID');
   const redirectUri = `${window.location.origin}/auth/callback?provider=google.com`;
   const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=email%20profile`;
   const accessToken = await oauthPopup(url);
@@ -89,7 +148,7 @@ export async function signInWithGoogle() {
 
 export async function signInWithGithub() {
   const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
-  if (!clientId) throw new Error('Set NEXT_PUBLIC_GITHUB_CLIENT_ID');
+  if (!clientId) throw new Error('GitHub sign-in: set NEXT_PUBLIC_GITHUB_CLIENT_ID');
   const redirectUri = `${window.location.origin}/auth/callback?provider=github.com`;
   const url = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user:email`;
   const accessToken = await oauthPopup(url);
@@ -98,11 +157,15 @@ export async function signInWithGithub() {
 
 // ── Sign out / state ──
 
-export async function signOut() { _user = null; notify(); }
+export async function signOut() {
+  clearSession();
+  _user = null;
+  notify();
+}
 
 export function onAuthStateChanged(fn: (u: FirebaseUser | null) => void) {
   listeners.add(fn);
-  fn(_user);
+  if (_user) fn(_user);
   return () => { listeners.delete(fn); };
 }
 
