@@ -5,13 +5,10 @@ const nextConfig = {
     '@codeagent/auth',
     '@codeagent/shared',
     '@codeagent/editor',
+    '@codeagent/ai',
   ],
   experimental: {
     externalDir: true,
-  },
-  env: {
-    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || '',
-    CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY || '',
   },
 };
 

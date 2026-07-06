@@ -136,6 +136,25 @@ model Memory {
   @@index([key, projectId])
 }
 
+model Chat {
+  id        String    @id @default(cuid())
+  title     String
+  userId    String?
+  messages  Message[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  chatId    String
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  role      String   // user | assistant | agent
+  content   String
+  agent     String?
+  createdAt DateTime @default(now())
+}
+
 model Document {
   id        String   @id @default(cuid())
   title     String

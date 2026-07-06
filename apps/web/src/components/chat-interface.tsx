@@ -1,23 +1,15 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@codeagent/ui';
-import { generateId } from '@codeagent/shared';
-import { AgentManager, PlannerAgent, CoderAgent, ReviewerAgent, TesterAgent } from '@codeagent/agents';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Paperclip, X } from 'lucide-react';
-
-const manager = new AgentManager();
-manager.register(new PlannerAgent());
-manager.register(new CoderAgent());
-manager.register(new ReviewerAgent());
-manager.register(new TesterAgent());
+import Markdown from './markdown';
 
 interface Message {
-  role: 'user' | 'assistant' | 'agent';
+  role: 'user' | 'assistant';
   content: string;
-  agent?: string;
 }
 
 export default function ChatInterface() {
@@ -25,58 +17,75 @@ export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
+  const [streamingContent, setStreamingContent] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, streamingContent]);
 
   const agents = useQuery({
     queryKey: ['agents'],
-    queryFn: () => manager.getAllAgents(),
+    queryFn: () => fetch('/api/agents').then((r) => r.json()),
   });
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
-    }
+    if (e.target.files) setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
     e.target.value = '';
   };
 
-  const removeFile = (index: number) => {
-    setFiles((prev) => prev.filter((_, i) => i !== index));
-  };
+  const removeFile = (index: number) => setFiles((prev) => prev.filter((_, i) => i !== index));
 
   const handleSend = async () => {
     if (!input.trim() || isProcessing) return;
 
-    const userMessage: Message = { role: 'user', content: input };
-    setMessages((prev) => [...prev, userMessage]);
+    const userMsg: Message = { role: 'user', content: input };
+    setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setIsProcessing(true);
+    setStreamingContent('');
 
     try {
-      const task = {
-        id: `task_${Date.now()}`,
-        title: input,
-        description: input,
-        type: 'code' as const,
-        priority: 'medium' as const,
-      };
+      const chatMessages = [...messages, userMsg].map((m) => ({ role: m.role, content: m.content }));
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: chatMessages }),
+      });
 
-      const result = await manager.execute(task, 'coder');
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'agent',
-          content: result.output,
-          agent: 'Coder Agent',
-        },
-      ]);
-    } catch (error) {
-      toast.error('Failed to process request');
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: 'Sorry, something went wrong.' },
-      ]);
+      if (!res.ok) throw new Error(await res.text());
+
+      const contentType = res.headers.get('Content-Type') || '';
+      if (contentType.includes('text/event-stream')) {
+        const reader = res.body?.getReader();
+        const decoder = new TextDecoder();
+        let full = '';
+
+        while (reader) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n').filter((l) => l.startsWith('0:"'));
+          for (const line of lines) {
+            const text = line.slice(3, -1).replace(/\\(.)/g, '$1');
+            full += text;
+            setStreamingContent(full);
+          }
+        }
+
+        setMessages((prev) => [...prev, { role: 'assistant', content: full }]);
+        setStreamingContent('');
+      } else {
+        const data = await res.json();
+        setMessages((prev) => [...prev, { role: 'assistant', content: data.content }]);
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+      setMessages((prev) => [...prev, { role: 'assistant', content: 'Sorry, something went wrong.' }]);
     } finally {
       setIsProcessing(false);
+      setStreamingContent('');
     }
   };
 
@@ -85,9 +94,9 @@ export default function ChatInterface() {
       <header className="border-b px-6 py-3">
         <h1 className="text-lg font-semibold">Kudos.ai</h1>
         <div className="mt-1 flex gap-2">
-          {agents.data?.map((agent) => (
-            <span key={agent.id} className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">
-              {agent.name}
+          {agents.data?.map((agent: any) => (
+            <span key={agent.name} className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">
+              {agent.icon} {agent.name}
             </span>
           ))}
         </div>
@@ -97,20 +106,26 @@ export default function ChatInterface() {
         {messages.map((msg, i) => (
           <div key={i} className={`mb-4 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div
-              className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                msg.role === 'user'
-                  ? 'bg-primary text-primary-foreground'
-                  : msg.role === 'agent'
-                    ? 'bg-muted'
-                    : 'bg-secondary'
+              className={`max-w-[85%] rounded-lg px-4 py-2 ${
+                msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
               }`}
             >
-              {msg.agent && <p className="mb-1 text-xs font-medium text-muted-foreground">{msg.agent}</p>}
-              <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
+              {msg.role === 'user' ? (
+                <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
+              ) : (
+                <Markdown content={msg.content} />
+              )}
             </div>
           </div>
         ))}
-        {isProcessing && (
+        {streamingContent && (
+          <div className="flex justify-start">
+            <div className="max-w-[85%] rounded-lg bg-muted px-4 py-2">
+              <Markdown content={streamingContent} />
+            </div>
+          </div>
+        )}
+        {isProcessing && !streamingContent && (
           <div className="flex justify-start">
             <div className="rounded-lg bg-muted px-4 py-2">
               <div className="flex gap-1">
@@ -121,6 +136,7 @@ export default function ChatInterface() {
             </div>
           </div>
         )}
+        <div ref={bottomRef} />
       </div>
 
       <div className="border-t p-4">
@@ -137,19 +153,8 @@ export default function ChatInterface() {
           </div>
         )}
         <div className="flex gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept=".pdf,.png,.jpg,.jpeg,.gif,.svg,.txt,.csv,.json,.ts,.tsx,.js,.jsx,.py,.md"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex h-10 w-10 items-center justify-center rounded-md border border-input bg-background text-muted-foreground hover:text-foreground"
-            type="button"
-          >
+          <input ref={fileInputRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.svg,.txt,.csv,.json,.ts,.tsx,.js,.jsx,.py,.md" onChange={handleFileSelect} className="hidden" />
+          <button onClick={() => fileInputRef.current?.click()} className="flex h-10 w-10 items-center justify-center rounded-md border border-input bg-background text-muted-foreground hover:text-foreground" type="button">
             <Paperclip className="h-4 w-4" />
           </button>
           <input
@@ -157,12 +162,10 @@ export default function ChatInterface() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder="Ask the coding agent..."
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             disabled={isProcessing}
           />
-          <Button onClick={handleSend} loading={isProcessing}>
-            Send
-          </Button>
+          <Button onClick={handleSend} loading={isProcessing}>Send</Button>
         </div>
       </div>
     </div>
