@@ -1,9 +1,19 @@
 import Link from 'next/link';
-import { agents } from '@/lib/agents';
 
 export const dynamic = 'force-dynamic';
 
-export default function DashboardPage() {
+async function getAgents() {
+  try {
+    const base = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
+    const res = await fetch(`${base}/api/agents`, { cache: 'no-store' });
+    if (res.ok) { const d = await res.json(); return d.agents || []; }
+  } catch {}
+  return [];
+}
+
+export default async function DashboardPage() {
+  const agents = await getAgents();
+
   return (
     <div className="min-h-screen bg-background p-6">
       <header className="mb-8 flex items-center justify-between">
@@ -32,11 +42,10 @@ export default function DashboardPage() {
       <div className="mb-8">
         <h2 className="mb-4 text-lg font-semibold">Agents</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {agents.map((agent) => (
-            <div key={agent.name} className="rounded-lg border p-4">
-              <div className="mb-1 text-xl">{agent.icon}</div>
+          {agents.map((agent: any) => (
+            <div key={agent.id} className="rounded-lg border p-4">
               <h3 className="font-semibold">{agent.name}</h3>
-              <p className="mb-3 text-xs text-muted-foreground">{agent.desc}</p>
+              <p className="mb-3 text-xs text-muted-foreground">{agent.description}</p>
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>Runs: 0</span>
                 <span className="inline-flex items-center gap-1 text-green-500"><span className="h-1.5 w-1.5 rounded-full bg-green-500" /> Idle</span>
@@ -47,12 +56,8 @@ export default function DashboardPage() {
       </div>
 
       <div className="rounded-lg border">
-        <div className="border-b px-4 py-3">
-          <h2 className="font-semibold">Recent Activity</h2>
-        </div>
-        <div className="p-8 text-center text-sm text-muted-foreground">
-          No activity yet. Start a chat to see agent runs here.
-        </div>
+        <div className="border-b px-4 py-3"><h2 className="font-semibold">Recent Activity</h2></div>
+        <div className="p-8 text-center text-sm text-muted-foreground">No activity yet. Start a chat to see agent runs here.</div>
       </div>
     </div>
   );

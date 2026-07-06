@@ -7,3 +7,4 @@ export * from './reviewer';
 export * from './tester';
 export * from './researcher';
 export * from './memory';
+export * from './tools';

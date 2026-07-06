@@ -1,9 +1,22 @@
 import Link from 'next/link';
-import { agents } from '@/lib/agents';
 
 export const dynamic = 'force-dynamic';
 
-export default function HomePage() {
+async function getAgents() {
+  try {
+    const base = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
+    const res = await fetch(`${base}/api/agents`, { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      return data.agents || [];
+    }
+  } catch {}
+  return [];
+}
+
+export default async function HomePage() {
+  const agents = await getAgents();
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b">
@@ -31,20 +44,21 @@ export default function HomePage() {
             <Link href="/dashboard" className="inline-flex h-11 items-center justify-center rounded-md border border-input bg-background px-8 text-sm font-medium transition-colors hover:bg-accent">View Dashboard</Link>
           </div>
         </section>
-        <section className="border-t">
-          <div className="mx-auto max-w-7xl px-4 py-16">
-            <h2 className="mb-8 text-center text-2xl font-bold">Core Agents</h2>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              {agents.map((agent) => (
-                <div key={agent.name} className="rounded-lg border p-6">
-                  <div className="mb-2 text-2xl">{agent.icon}</div>
-                  <h3 className="mb-2 font-semibold">{agent.name}</h3>
-                  <p className="text-sm text-muted-foreground">{agent.desc}</p>
-                </div>
-              ))}
+        {agents.length > 0 && (
+          <section className="border-t">
+            <div className="mx-auto max-w-7xl px-4 py-16">
+              <h2 className="mb-8 text-center text-2xl font-bold">Core Agents</h2>
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                {agents.map((agent: any) => (
+                  <div key={agent.id} className="rounded-lg border p-6">
+                    <h3 className="mb-2 font-semibold">{agent.name}</h3>
+                    <p className="text-sm text-muted-foreground">{agent.description}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
       </main>
     </div>
   );

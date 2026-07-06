@@ -25,10 +25,11 @@ export default function ChatInterface() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, streamingContent]);
 
-  const agents = useQuery({
+  const { data: agentData } = useQuery({
     queryKey: ['agents'],
     queryFn: () => fetch('/api/agents').then((r) => r.json()),
   });
+  const tools = agentData?.tools || [];
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
@@ -51,7 +52,7 @@ export default function ChatInterface() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: chatMessages }),
+        body: JSON.stringify({ messages: chatMessages, tools }),
       });
 
       if (!res.ok) throw new Error(await res.text());
@@ -93,10 +94,10 @@ export default function ChatInterface() {
     <div className="flex h-full flex-col">
       <header className="border-b px-6 py-3">
         <h1 className="text-lg font-semibold">Kudos.ai</h1>
-        <div className="mt-1 flex gap-2">
-          {agents.data?.map((agent: any) => (
-            <span key={agent.name} className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">
-              {agent.icon} {agent.name}
+        <div className="mt-1 flex flex-wrap gap-2">
+          {tools.map((tool: any) => (
+            <span key={tool.name} className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">
+              {tool.name}
             </span>
           ))}
         </div>
