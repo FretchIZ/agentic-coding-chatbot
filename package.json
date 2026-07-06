@@ -5,7 +5,7 @@
   "packageManager": "npm@10.0.0",
   "scripts": {
     "dev": "turbo dev",
-    "build": "turbo build",
+    "build": "npx turbo build --filter=...web && rm -rf .next 2>/dev/null && cp -r apps/web/.next .next",
     "test": "turbo test",
     "lint": "turbo lint",
     "clean": "turbo clean",
