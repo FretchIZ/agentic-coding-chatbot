@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { agents } from '@/lib/agents';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,13 +34,10 @@ export default function HomePage() {
         <section className="border-t">
           <div className="mx-auto max-w-7xl px-4 py-16">
             <h2 className="mb-8 text-center text-2xl font-bold">Core Agents</h2>
-            <div className="grid gap-6 md:grid-cols-3">
-              {[
-                { name: 'Planner', desc: 'Breaks down tasks into actionable steps' },
-                { name: 'Coder', desc: 'Writes and modifies code across files' },
-                { name: 'Reviewer', desc: 'Reviews code for bugs and best practices' },
-              ].map((agent) => (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              {agents.map((agent) => (
                 <div key={agent.name} className="rounded-lg border p-6">
+                  <div className="mb-2 text-2xl">{agent.icon}</div>
                   <h3 className="mb-2 font-semibold">{agent.name}</h3>
                   <p className="text-sm text-muted-foreground">{agent.desc}</p>
                 </div>

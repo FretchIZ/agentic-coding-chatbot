@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Analytics } from '@vercel/analytics/next';
 import '@/styles/globals.css';
 import { Providers } from '@/providers';
+import ThemeToggle from '@/components/theme-toggle';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          <div className="fixed bottom-4 right-4 z-50">
+            <ThemeToggle />
+          </div>
+          {children}
+        </Providers>
         <Analytics />
       </body>
     </html>
