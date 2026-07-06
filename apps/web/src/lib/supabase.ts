@@ -92,7 +92,7 @@ export async function signInWithEmail(email: string, password: string) {
   return _user;
 }
 
-export function signInWithOAuth(provider: 'google' | 'github') {
+export function signInWithOAuth(provider: 'google' | 'facebook') {
   const redirectTo = `${window.location.origin}/auth/callback`;
   window.location.href = `${SUPABASE_URL}/auth/v1/authorize?provider=${provider}&redirect_to=${encodeURIComponent(redirectTo)}`;
 }
