@@ -2,32 +2,20 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { persistSessionFromHash } from '@/lib/supabase';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
   const [msg, setMsg] = useState('Completing sign-in...');
 
   useEffect(() => {
-    const hash = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = hash.get('access_token');
-    const refreshToken = hash.get('refresh_token');
-    const expiresIn = hash.get('expires_in');
-
-    if (accessToken) {
-      const user = { id: '', email: '', user_metadata: {} };
-      try {
-        const payload = JSON.parse(atob(accessToken.split('.')[1]));
-        user.id = payload.sub;
-        user.email = payload.email || '';
-        user.user_metadata = {};
-      } catch {}
-
-      const session = { access_token: accessToken, refresh_token: refreshToken || '', user };
-      try { localStorage.setItem('sb_session', JSON.stringify(session)); } catch {}
-      setMsg('Signed in! Redirecting...');
+    const user = persistSessionFromHash();
+    if (user) {
+      setMsg('Signed in!');
       router.push('/chat');
     } else {
-      setMsg('Sign-in failed');
+      const err = new URLSearchParams(window.location.hash.substring(1)).get('error_description');
+      setMsg(err || 'Sign-in failed');
       setTimeout(() => router.push('/sign-in'), 2000);
     }
   }, [router]);

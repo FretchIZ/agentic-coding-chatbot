@@ -22,8 +22,13 @@ export default function SignInPage() {
     setSubmitting(true);
     try {
       if (isSignUp) {
-        await signUpWithEmail(email, password);
-        toast.success('Check your email for confirmation link');
+        const result = await signUpWithEmail(email, password);
+        if (result.needsConfirmation) {
+          toast.success('Check your email for confirmation link');
+        } else {
+          toast.success('Account created!');
+          router.push('/chat');
+        }
       } else {
         await signInWithEmail(email, password);
         toast.success('Signed in!');
