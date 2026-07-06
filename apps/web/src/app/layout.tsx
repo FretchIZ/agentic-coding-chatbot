@@ -6,7 +6,7 @@ import { Providers } from '@/providers';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'CodeAgent',
+  title: 'Kudos.ai',
   description: 'AI-powered coding agent platform',
 };
 

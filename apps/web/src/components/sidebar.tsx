@@ -63,7 +63,7 @@ export default function Sidebar() {
             ))}
           </nav>
           <div className="border-t p-3 text-xs text-muted-foreground">
-            CodeAgent Chat
+            Kudos.ai Chat
           </div>
         </div>
       </aside>

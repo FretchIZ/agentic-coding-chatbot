@@ -83,7 +83,7 @@ export default function ChatInterface() {
   return (
     <div className="flex h-full flex-col">
       <header className="border-b px-6 py-3">
-        <h1 className="text-lg font-semibold">CodeAgent</h1>
+        <h1 className="text-lg font-semibold">Kudos.ai</h1>
         <div className="mt-1 flex gap-2">
           {agents.data?.map((agent) => (
             <span key={agent.id} className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">
