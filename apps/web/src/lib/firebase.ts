@@ -9,7 +9,6 @@ export type FirebaseUser = {
 
 let _user: FirebaseUser | null = null;
 const listeners = new Set<(u: FirebaseUser | null) => void>();
-const tokenRefresh = new Map<string, string>();
 
 function notify() { listeners.forEach(fn => fn(_user)); }
 
@@ -30,7 +29,6 @@ function toUser(d: any): FirebaseUser {
 
 export async function signUpWithEmail(email: string, password: string) {
   const data = await api('signUp', { email, password, returnSecureToken: true });
-  tokenRefresh.set(data.localId, data.refreshToken);
   _user = toUser(data);
   notify();
   return _user;
@@ -38,7 +36,6 @@ export async function signUpWithEmail(email: string, password: string) {
 
 export async function signInWithEmail(email: string, password: string) {
   const data = await api('signInWithPassword', { email, password, returnSecureToken: true });
-  tokenRefresh.set(data.localId, data.refreshToken);
   _user = toUser(data);
   notify();
   return _user;
