@@ -1,25 +1,39 @@
 import { NextResponse } from 'next/server';
-import { createAnthropic } from '@ai-sdk/anthropic';
-import { streamText, tool } from 'ai';
-import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+const TEST_MODE = !process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY === 'sk-ant-test';
+
+function mockResponse(messages: any[]) {
+  const last = messages[messages.length - 1]?.content || '';
+  return `Here's my response to: "${last.slice(0, 100)}..."
+
+\`\`\`python
+def hello():
+    print("Hello from test mode!")
+\`\`\`
+
+> **Test Mode** — No real API call made. Set \`ANTHROPIC_API_KEY\` env var to use real Anthropic Claude.`;
+}
+
 export async function POST(req: Request) {
   try {
-    const { messages, tools: mcpTools } = await req.json();
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const { messages, tools } = await req.json();
 
-    if (!apiKey) {
-      return NextResponse.json({ content: 'Anthropic API key not configured. Set ANTHROPIC_API_KEY in env.' });
+    if (TEST_MODE) {
+      return NextResponse.json({ content: mockResponse(messages) });
     }
 
-    const anthropic = createAnthropic({ apiKey });
+    const { createAnthropic } = await import('@ai-sdk/anthropic');
+    const { streamText, tool } = await import('ai');
+    const { z } = await import('zod');
+
+    const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
     const aiTools: Record<string, any> = {};
-    if (mcpTools) {
-      for (const t of mcpTools) {
+    if (tools) {
+      for (const t of tools) {
         aiTools[t.name] = tool({
           description: t.description,
           parameters: z.object({
