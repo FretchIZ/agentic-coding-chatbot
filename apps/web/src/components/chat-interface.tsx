@@ -57,8 +57,11 @@ export default function ChatInterface() {
 
       if (!res.ok) throw new Error(await res.text());
 
-      const contentType = res.headers.get('Content-Type') || '';
-      if (contentType.includes('text/event-stream') || contentType.includes('text/plain')) {
+      const isStream = ['text/event-stream', 'text/plain'].some(
+        (t) => res.headers.get('Content-Type')?.includes(t),
+      );
+
+      if (isStream) {
         const reader = res.body?.getReader();
         const decoder = new TextDecoder();
         let full = '';
@@ -66,25 +69,11 @@ export default function ChatInterface() {
         while (reader) {
           const { done, value } = await reader.read();
           if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n').filter(Boolean);
-          for (const line of lines) {
-            const colonIdx = line.indexOf(':');
-            if (colonIdx > 0) {
-              const val = line.slice(colonIdx + 1);
-              if (val.startsWith('"') && val.endsWith('"')) {
-                full += JSON.parse(val);
-              } else {
-                full += val;
-              }
-            } else {
-              full += line;
-            }
-          }
+          full += decoder.decode(value, { stream: true });
           setStreamingContent(full);
         }
 
-        setMessages((prev) => [...prev, { role: 'assistant', content: full || '(empty response)' }]);
+        setMessages((prev) => [...prev, { role: 'assistant', content: full || '(no response)' }]);
         setStreamingContent('');
       } else {
         const data = await res.json();
