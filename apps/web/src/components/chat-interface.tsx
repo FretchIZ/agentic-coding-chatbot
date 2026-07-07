@@ -67,7 +67,20 @@ export default function ChatInterface() {
           const { done, value } = await reader.read();
           if (done) break;
           const chunk = decoder.decode(value, { stream: true });
-          full += chunk;
+          const lines = chunk.split('\n').filter(Boolean);
+          for (const line of lines) {
+            const colonIdx = line.indexOf(':');
+            if (colonIdx > 0) {
+              const val = line.slice(colonIdx + 1);
+              if (val.startsWith('"') && val.endsWith('"')) {
+                full += JSON.parse(val);
+              } else {
+                full += val;
+              }
+            } else {
+              full += line;
+            }
+          }
           setStreamingContent(full);
         }
 

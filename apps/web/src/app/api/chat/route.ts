@@ -52,27 +52,9 @@ export async function POST(req: Request) {
       temperature: 0.7,
     });
 
-    const encoder = new TextEncoder();
-    const textStream = result.textStream;
-    const readable = new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const chunk of textStream) {
-            controller.enqueue(encoder.encode(chunk));
-          }
-        } catch (e) {
-          controller.enqueue(encoder.encode(`\n\nError: ${e instanceof Error ? e.message : 'Stream failed'}`));
-        } finally {
-          controller.close();
-        }
-      },
-    });
-
-    return new Response(readable, {
+    return result.toDataStreamResponse({
       headers: {
         'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
       },
     });
   } catch (err: any) {
