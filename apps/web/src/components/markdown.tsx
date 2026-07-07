@@ -128,8 +128,8 @@ export default function Markdown({ content }: { content: string }) {
   function flushText() {
     if (!textBuf.length) return;
     const t = textBuf.join('\n');
-    if (/^#{1,3}\s/.test(t)) {
-      blocks.push(`<p class="mb-2 text-sm leading-relaxed font-semibold">${renderInline(t.replace(/^#{1,3}\s/, ''))}</p>`);
+    if (/^#{1,6}\s/.test(t)) {
+      blocks.push(`<p class="mb-2 text-sm leading-relaxed font-semibold">${renderInline(t.replace(/^#{1,6}\s/, ''))}</p>`);
     } else if (/^\d+\.\s/.test(t)) {
       const items = t.split('\n').filter((l) => /^\d+\.\s/.test(l));
       blocks.push('<ol class="list-decimal ml-5 mb-2">' + items.map((l) => `<li class="text-sm">${renderInline(l.replace(/^\d+\.\s/, ''))}</li>`).join('') + '</ol>');
@@ -142,7 +142,7 @@ export default function Markdown({ content }: { content: string }) {
       blocks.push('<hr class="my-4 border-muted-foreground/20"/>');
     } else {
       t.split('\n').filter(Boolean).forEach((l) => {
-        const cleaned = l.replace(/^#{1,3}\s/, '');
+        const cleaned = l.replace(/^#{1,6}\s/, '');
         blocks.push(`<p class="mb-2 text-sm leading-relaxed">${renderInline(cleaned)}</p>`);
       });
     }
