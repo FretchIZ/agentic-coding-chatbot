@@ -112,7 +112,7 @@ function escapeHtml(text: string): string {
 
 function renderInline(text: string): string {
   let r = escapeHtml(text);
-  r = r.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  r = r.replace(/\*\*(.+?)\*\*/g, '$1');
   r = r.replace(/`(.+?)`/g, '<code class="rounded-lg bg-muted px-1.5 py-0.5 text-xs font-mono shadow-sm">$1</code>');
   return r.replace(/\n/g, '<br/>');
 }
@@ -129,8 +129,7 @@ export default function Markdown({ content }: { content: string }) {
     if (!textBuf.length) return;
     const t = textBuf.join('\n');
     if (/^#{1,3}\s/.test(t)) {
-      const level = t.match(/^#{1,3}/)![0].length;
-      blocks.push(`<h${level} class="font-bold mt-4 mb-2">${renderInline(t.replace(/^#{1,3}\s/, ''))}</h${level}>`);
+      blocks.push(`<p class="mb-2 text-sm leading-relaxed font-semibold">${renderInline(t.replace(/^#{1,3}\s/, ''))}</p>`);
     } else if (/^\d+\.\s/.test(t)) {
       const items = t.split('\n').filter((l) => /^\d+\.\s/.test(l));
       blocks.push('<ol class="list-decimal ml-5 mb-2">' + items.map((l) => `<li class="text-sm">${renderInline(l.replace(/^\d+\.\s/, ''))}</li>`).join('') + '</ol>');
