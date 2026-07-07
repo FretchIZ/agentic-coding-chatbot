@@ -42,6 +42,9 @@ export async function POST(req: Request) {
       tools: Object.keys(aiTools).length > 0 ? aiTools : undefined,
       maxTokens: 8192,
       temperature: 0.7,
+      onError: (err) => {
+        console.error('[Anthropic Error]', err?.message || err);
+      },
     });
 
     return result.toDataStreamResponse({
