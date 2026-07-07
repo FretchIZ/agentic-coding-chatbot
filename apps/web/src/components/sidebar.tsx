@@ -32,7 +32,7 @@ export default function Sidebar({ conversations, activeId, onSelect, onCreate, o
           <div className="border-b p-3">
             <div className="mb-3 flex items-center gap-2 px-1">
               <Sparkles className="h-5 w-5 text-primary" />
-              <span className="text-sm font-semibold">Kudos.ai</span>
+              <span className="text-sm font-semibold">Sai.ai</span>
             </div>
             <button
               onClick={onCreate}

@@ -9,7 +9,7 @@ export default async function HomePage() {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-primary" />
-            <span className="text-xl font-bold">Kudos.ai</span>
+            <span className="text-xl font-bold">Sai.ai</span>
           </div>
           <nav className="flex items-center gap-4">
             <Link href="/sign-in" className="text-sm text-muted-foreground hover:text-foreground">Sign In</Link>

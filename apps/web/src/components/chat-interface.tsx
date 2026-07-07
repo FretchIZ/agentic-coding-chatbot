@@ -129,7 +129,7 @@ export default function ChatInterface({ conversation, onAddMessage }: Props) {
       <header className="border-b px-4 py-3 sm:px-6">
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
-          <h1 className="text-lg font-semibold">Kudos.ai</h1>
+          <h1 className="text-lg font-semibold">Sai.ai</h1>
         </div>
       </header>
 
@@ -168,7 +168,7 @@ export default function ChatInterface({ conversation, onAddMessage }: Props) {
             <div className="max-w-[90%] rounded-2xl bg-muted/80 px-4 py-2.5 shadow-sm backdrop-blur-sm sm:max-w-[75%]">
               <div className="mb-1 flex items-center gap-1.5">
                 <Sparkles className="h-3.5 w-3.5 text-primary" />
-                <span className="text-xs font-medium text-primary">Kudos</span>
+                <span className="text-xs font-medium text-primary">Sai</span>
               </div>
               <Markdown content={streamingContent} />
             </div>

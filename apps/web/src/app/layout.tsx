@@ -7,8 +7,8 @@ import ThemeToggle from '@/components/theme-toggle';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Kudos.ai',
-  description: 'AI-powered coding agent platform',
+  title: 'Sai.ai',
+  description: 'AI-powered coding assistant',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

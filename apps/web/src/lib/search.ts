@@ -3,7 +3,7 @@ const DDG_API = 'https://api.duckduckgo.com';
 export async function searchWeb(query: string): Promise<string> {
   try {
     const res = await fetch(`${DDG_API}/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`, {
-      headers: { 'User-Agent': 'Kudos.ai/1.0' },
+      headers: { 'User-Agent': 'Sai.ai/1.0' },
     });
     if (!res.ok) return '';
 
