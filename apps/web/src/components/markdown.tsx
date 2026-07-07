@@ -1,5 +1,27 @@
 'use client';
 
+const SUPERSCRIPTS: Record<string, string> = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹', '-': '⁻', '+': '⁺', 'n': 'ⁿ' };
+const GREEK: Record<string, string> = { alpha: 'α', beta: 'β', gamma: 'γ', delta: 'δ', epsilon: 'ε', zeta: 'ζ', eta: 'η', theta: 'θ', iota: 'ι', kappa: 'κ', lambda: 'λ', mu: 'μ', nu: 'ν', xi: 'ξ', omicron: 'ο', pi: 'π', rho: 'ρ', sigma: 'σ', tau: 'τ', upsilon: 'υ', phi: 'φ', chi: 'χ', psi: 'ψ', omega: 'ω', Gamma: 'Γ', Delta: 'Δ', Theta: 'Θ', Lambda: 'Λ', Xi: 'Ξ', Pi: 'Π', Sigma: 'Σ', Phi: 'Φ', Psi: 'Ψ', Omega: 'Ω', partial: '∂', nabla: '∇', hbar: 'ħ', infty: '∞', inft: '∞' };
+
+function latexToPlain(text: string): string {
+  let s = text;
+
+  s = s.replace(/\\\[([\s\S]*?)\\\]/g, (_, m) => `\n${latexLine(m.trim())}\n`);
+  s = s.replace(/\\\(([\s\S]*?)\\\)/g, (_, m) => latexLine(m.trim()));
+
+  return s;
+}
+
+function latexLine(s: string): string {
+  s = s.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, (_, a, b) => `${latexLine(a)}/${latexLine(b)}`);
+  s = s.replace(/\^\{([^}]+)\}/g, (_, d) => [...d].map((c: string) => SUPERSCRIPTS[c] || c).join(''));
+  s = s.replace(/\^(\d)/g, (_, d) => SUPERSCRIPTS[d] || d);
+  s = s.replace(/\{([^}]+)\}/g, (_, m) => m);
+  s = s.replace(/\\([a-zA-Z]+)/g, (_, name) => GREEK[name] || (name === 'cdot' ? '·' : name === 'times' ? '×' : name === 'to' || name === 'rightarrow' ? '→' : name === 'leftarrow' ? '←' : name === 'Rightarrow' ? '⇒' : name === 'approx' ? '≈' : name === 'neq' ? '≠' : name === 'leq' ? '≤' : name === 'geq' ? '≥' : name === 'cdot' ? '·' : name === 'sum' ? '∑' : name === 'int' ? '∫' : name === 'prod' ? '∏' : name === 'quad' || name === 'qquad' ? '  ' : name === 'quad' ? ' ' : ''));
+  s = s.replace(/\\\s*/g, '');
+  return s;
+}
+
 function escapeHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
@@ -13,6 +35,7 @@ function renderInline(text: string): string {
 }
 
 export default function Markdown({ content }: { content: string }) {
+  content = latexToPlain(content);
   const blocks: string[] = [];
   const lines = content.split('\n');
   let inCode = false;
