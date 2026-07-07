@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-const TEST_MODE = !process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY === 'sk-ant-test';
+const TEST_MODE = !process.env.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY === 'test';
 
 export async function POST(req: Request) {
   try {
@@ -15,12 +15,12 @@ export async function POST(req: Request) {
       });
     }
 
-    const { createAnthropic } = await import('@ai-sdk/anthropic');
+    const { createMistral } = await import('@ai-sdk/mistral');
     const { streamText, tool } = await import('ai');
     const { z } = await import('zod');
 
-    const anthropic = createAnthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
+    const mistral = createMistral({
+      apiKey: process.env.MISTRAL_API_KEY,
     });
 
     const aiTools: Record<string, any> = {};
@@ -37,13 +37,13 @@ export async function POST(req: Request) {
     }
 
     const result = streamText({
-      model: anthropic('claude-3-5-sonnet-20241022'),
+      model: mistral('mistral-large-latest'),
       messages: messages.map((m: any) => ({ role: m.role, content: m.content })),
       tools: Object.keys(aiTools).length > 0 ? aiTools : undefined,
       maxTokens: 8192,
       temperature: 0.7,
       onError: (err) => {
-        console.error('[Anthropic Error]', err?.message || err);
+        console.error('[Mistral Error]', err?.message || err);
       },
     });
 
@@ -69,6 +69,6 @@ function mockResponse(messages: any[]) {
     '    print("Hello from test mode!")',
     '```',
     '',
-    '> **Test Mode** — No real API call made. Set `ANTHROPIC_API_KEY` env var to use real Anthropic Claude.',
+    '> **Test Mode** — No real API call made. Set \`MISTRAL_API_KEY\` env var to use real Mistral AI.',
   ].join('\n');
 }
