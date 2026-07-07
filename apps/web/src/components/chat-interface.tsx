@@ -12,6 +12,8 @@ interface Message {
   content: string;
 }
 
+const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/svg+xml', 'image/webp'];
+
 export default function ChatInterface() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -32,7 +34,14 @@ export default function ChatInterface() {
   const tools = agentData?.tools || [];
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+    if (!e.target.files) return;
+    const newFiles = Array.from(e.target.files);
+    const images = newFiles.filter((f) => IMAGE_TYPES.includes(f.type));
+    if (images.length > 0) {
+      toast.error('Mistral does not support image input. Only text and code files are supported.');
+      return;
+    }
+    setFiles((prev) => [...prev, ...newFiles]);
     e.target.value = '';
   };
 
@@ -69,18 +78,7 @@ export default function ChatInterface() {
         while (reader) {
           const { done, value } = await reader.read();
           if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          for (const line of chunk.split('\n').filter(Boolean)) {
-            const colon = line.indexOf(':');
-            if (colon < 0) { full += line; continue }
-            const type = line[0];
-            const val = line.slice(colon + 1);
-            if (type === '0' && val.startsWith('"')) {
-              full += JSON.parse(val);
-            } else if (type === '3') {
-              full += `\n\n*Error: ${val.replace(/"/g, '')}*`;
-            }
-          }
+          full += decoder.decode(value, { stream: true });
           setStreamingContent(full);
         }
 
@@ -163,7 +161,7 @@ export default function ChatInterface() {
           </div>
         )}
         <div className="flex gap-2">
-          <input ref={fileInputRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.svg,.txt,.csv,.json,.ts,.tsx,.js,.jsx,.py,.md" onChange={handleFileSelect} className="hidden" />
+          <input ref={fileInputRef} type="file" multiple accept=".txt,.csv,.json,.ts,.tsx,.js,.jsx,.py,.md,.html,.css" onChange={handleFileSelect} className="hidden" />
           <button onClick={() => fileInputRef.current?.click()} className="flex h-10 w-10 items-center justify-center rounded-md border border-input bg-background text-muted-foreground hover:text-foreground" type="button">
             <Paperclip className="h-4 w-4" />
           </button>
