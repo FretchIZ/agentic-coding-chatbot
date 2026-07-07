@@ -44,9 +44,17 @@ export async function POST(req: Request) {
       temperature: 0.7,
     });
 
-    return result.toDataStreamResponse({
-      headers: { 'Content-Type': 'text/event-stream' },
-    });
+    try {
+      let text = '';
+      for await (const chunk of result.textStream) {
+        text += chunk;
+      }
+      return NextResponse.json({ content: text });
+    } catch (e: any) {
+      return NextResponse.json({
+        content: `**API Error:** ${e?.message || 'Unknown Anthropic API error'}\n\nCheck that your ANTHROPIC_API_KEY is valid at https://console.anthropic.com`,
+      });
+    }
   } catch (err: any) {
     console.error('Chat API error:', err);
     return NextResponse.json(
