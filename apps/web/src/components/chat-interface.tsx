@@ -1,20 +1,25 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Button } from '@codeagent/ui';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Paperclip, X, Send, Sparkles } from 'lucide-react';
 import Markdown from './markdown';
+import type { Conversation, Message } from '@/lib/use-conversations';
 
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
+interface Props {
+  conversation: Conversation | null;
+  onAddMessage: (msg: Message) => void;
 }
 
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/svg+xml', 'image/webp'];
 
-export default function ChatInterface() {
+interface Props {
+  conversation: Conversation | null;
+  onAddMessage: (msg: Message) => void;
+}
+
+export default function ChatInterface({ conversation, onAddMessage }: Props) {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -23,6 +28,11 @@ export default function ChatInterface() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (conversation) setMessages(conversation.messages);
+    else setMessages([]);
+  }, [conversation?.id]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -59,13 +69,15 @@ export default function ChatInterface() {
     if (!input.trim() || isProcessing) return;
 
     const userMsg: Message = { role: 'user', content: input };
-    setMessages((prev) => [...prev, userMsg]);
+    const updated = [...messages, userMsg];
+    setMessages(updated);
+    onAddMessage(userMsg);
     setInput('');
     setIsProcessing(true);
     setStreamingContent('');
 
     try {
-      const chatMessages = [...messages, userMsg].map((m) => ({ role: m.role, content: m.content }));
+      const chatMessages = updated.map((m) => ({ role: m.role, content: m.content }));
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -90,15 +102,21 @@ export default function ChatInterface() {
           setStreamingContent(full);
         }
 
-        setMessages((prev) => [...prev, { role: 'assistant', content: full || '(no response)' }]);
+        const assistantMsg: Message = { role: 'assistant', content: full || '(no response)' };
+        setMessages((prev) => [...prev, assistantMsg]);
+        onAddMessage(assistantMsg);
         setStreamingContent('');
       } else {
         const data = await res.json();
-        setMessages((prev) => [...prev, { role: 'assistant', content: data.content }]);
+        const assistantMsg: Message = { role: 'assistant', content: data.content };
+        setMessages((prev) => [...prev, assistantMsg]);
+        onAddMessage(assistantMsg);
       }
     } catch (err: any) {
       toast.error(err.message);
-      setMessages((prev) => [...prev, { role: 'assistant', content: 'Sorry, something went wrong.' }]);
+      const errMsg: Message = { role: 'assistant', content: 'Sorry, something went wrong.' };
+      setMessages((prev) => [...prev, errMsg]);
+      onAddMessage(errMsg);
     } finally {
       setIsProcessing(false);
       setStreamingContent('');
@@ -111,16 +129,6 @@ export default function ChatInterface() {
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
           <h1 className="text-lg font-semibold">Kudos.ai</h1>
-        </div>
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {tools.map((tool: any) => (
-            <span
-              key={tool.name}
-              className="animate-fade-in inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-xs font-medium text-primary transition-all hover:bg-primary/10 hover:shadow-sm"
-            >
-              {tool.name}
-            </span>
-          ))}
         </div>
       </header>
 

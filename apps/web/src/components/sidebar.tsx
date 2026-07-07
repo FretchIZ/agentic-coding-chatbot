@@ -1,28 +1,23 @@
 'use client';
 
-import { useState } from 'react';
 import { PanelLeftClose, PanelLeft, Plus, MessageSquare, Trash2, Sparkles } from 'lucide-react';
+import type { Conversation } from '@/lib/use-conversations';
 
-interface Conversation {
-  id: string;
-  title: string;
-  createdAt: Date;
+interface Props {
+  conversations: Conversation[];
+  activeId: string | null;
+  onSelect: (id: string) => void;
+  onCreate: () => void;
+  onDelete: (id: string) => void;
+  collapsed: boolean;
+  onToggle: () => void;
 }
 
-const defaultConversations: Conversation[] = [
-  { id: '1', title: 'Build a React component', createdAt: new Date() },
-  { id: '2', title: 'Fix API endpoint bug', createdAt: new Date(Date.now() - 86400000) },
-  { id: '3', title: 'Database schema design', createdAt: new Date(Date.now() - 172800000) },
-];
-
-export default function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false);
-  const [conversations] = useState<Conversation[]>(defaultConversations);
-
+export default function Sidebar({ conversations, activeId, onSelect, onCreate, onDelete, collapsed, onToggle }: Props) {
   return (
     <>
       <button
-        onClick={() => setCollapsed(!collapsed)}
+        onClick={onToggle}
         className="absolute -left-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full border bg-background text-muted-foreground shadow-md transition-all hover:scale-105 hover:text-foreground"
         type="button"
       >
@@ -40,6 +35,7 @@ export default function Sidebar() {
               <span className="text-sm font-semibold">Kudos.ai</span>
             </div>
             <button
+              onClick={onCreate}
               className="flex w-full items-center gap-2 rounded-xl border border-dashed border-muted-foreground/30 px-3 py-2.5 text-sm text-muted-foreground transition-all hover:border-primary/50 hover:bg-primary/5 hover:text-primary"
               type="button"
             >
@@ -48,16 +44,24 @@ export default function Sidebar() {
             </button>
           </div>
           <nav className="flex-1 overflow-y-auto p-2">
-            {conversations.map((conv) => (
+            {conversations.length === 0 && (
+              <p className="px-3 py-4 text-center text-xs text-muted-foreground">No conversations yet</p>
+            )}
+            {[...conversations].reverse().map((conv) => (
               <button
                 key={conv.id}
-                className="group mb-0.5 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-muted-foreground transition-all hover:bg-muted hover:text-foreground active:scale-[0.98]"
+                onClick={() => onSelect(conv.id)}
+                className={`group mb-0.5 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm transition-all active:scale-[0.98] ${
+                  conv.id === activeId
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`}
                 type="button"
               >
                 <MessageSquare className="h-4 w-4 shrink-0" />
                 <span className="flex-1 truncate">{conv.title}</span>
                 <button
-                  onClick={(e) => { e.stopPropagation(); }}
+                  onClick={(e) => { e.stopPropagation(); onDelete(conv.id); }}
                   className="hidden shrink-0 text-muted-foreground transition-colors hover:text-destructive group-hover:block"
                   type="button"
                 >
