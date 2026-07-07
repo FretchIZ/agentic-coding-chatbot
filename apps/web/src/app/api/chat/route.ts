@@ -47,45 +47,52 @@ export async function POST(req: Request) {
 
     const encoder = new TextEncoder();
     const decoder = new TextDecoder();
+    let buffer = '';
 
     const readable = new ReadableStream({
-      start(controller) {
+      async start(controller) {
         const reader = res.body!.getReader();
 
-        function push() {
-          reader.read().then(({ done, value }) => {
-            if (done) {
-              controller.close();
-              return;
-            }
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
 
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split('\n').filter(Boolean);
+            buffer += decoder.decode(value, { stream: true });
+            const parts = buffer.split('\n');
+            buffer = parts.pop() || '';
 
-            for (const line of lines) {
-              if (!line.startsWith('data: ')) continue;
-              const json = line.slice(6).trim();
+            for (const part of parts) {
+              const trimmed = part.trim();
+              if (!trimmed.startsWith('data: ')) continue;
+              const json = trimmed.slice(6);
               if (json === '[DONE]') continue;
-
               try {
                 const parsed = JSON.parse(json);
                 const delta = parsed.choices?.[0]?.delta?.content;
-                if (delta) {
-                  controller.enqueue(encoder.encode(delta));
-                }
+                if (delta) controller.enqueue(encoder.encode(delta));
               } catch {
-                // skip malformed lines
+                // skip malformed JSON
               }
             }
+          }
 
-            push();
-          }).catch((e) => {
-            controller.enqueue(encoder.encode(`\n\nStream error: ${e.message}`));
-            controller.close();
-          });
+          if (buffer.trim().startsWith('data: ')) {
+            const json = buffer.trim().slice(6);
+            if (json !== '[DONE]') {
+              try {
+                const parsed = JSON.parse(json);
+                const delta = parsed.choices?.[0]?.delta?.content;
+                if (delta) controller.enqueue(encoder.encode(delta));
+              } catch {}
+            }
+          }
+
+          controller.close();
+        } catch (e: any) {
+          controller.enqueue(encoder.encode(`\n\nStream error: ${e.message}`));
+          controller.close();
         }
-
-        push();
       },
     });
 
