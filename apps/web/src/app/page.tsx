@@ -2,21 +2,7 @@ import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
-async function getAgents() {
-  try {
-    const base = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
-    const res = await fetch(`${base}/api/agents`, { cache: 'no-store' });
-    if (res.ok) {
-      const data = await res.json();
-      return data.agents || [];
-    }
-  } catch {}
-  return [];
-}
-
 export default async function HomePage() {
-  const agents = await getAgents();
-
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b">
@@ -34,31 +20,16 @@ export default async function HomePage() {
       <main className="flex-1">
         <section className="mx-auto max-w-7xl px-4 py-24 text-center">
           <h1 className="mb-6 text-5xl font-bold tracking-tight">
-            AI-Powered<br /><span className="text-primary">Coding Agent</span> Platform
+            AI-Powered<br /><span className="text-primary">Coding Assistant</span>
           </h1>
           <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground">
-            Multi-agent orchestration for software development. Plan, code, review, test, and deploy with AI agents.
+            Smart chat powered by Mistral AI. Persistent conversations, Markdown rendering, and code formatting — all in one place.
           </p>
           <div className="flex justify-center gap-4">
             <Link href="/chat" className="inline-flex h-11 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">Start Chatting</Link>
             <Link href="/dashboard" className="inline-flex h-11 items-center justify-center rounded-md border border-input bg-background px-8 text-sm font-medium transition-colors hover:bg-accent">View Dashboard</Link>
           </div>
         </section>
-        {agents.length > 0 && (
-          <section className="border-t">
-            <div className="mx-auto max-w-7xl px-4 py-16">
-              <h2 className="mb-8 text-center text-2xl font-bold">Core Agents</h2>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                {agents.map((agent: any) => (
-                  <div key={agent.id} className="rounded-lg border p-6">
-                    <h3 className="mb-2 font-semibold">{agent.name}</h3>
-                    <p className="text-sm text-muted-foreground">{agent.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
       </main>
     </div>
   );
