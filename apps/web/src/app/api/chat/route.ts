@@ -44,28 +44,8 @@ export async function POST(req: Request) {
       temperature: 0.7,
     });
 
-    const encoder = new TextEncoder();
-    const stream = result.textStream;
-    const readable = new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const chunk of stream) {
-            controller.enqueue(encoder.encode(chunk));
-          }
-        } catch (e: any) {
-          const msg = e?.message || String(e);
-          controller.enqueue(encoder.encode(`\n\n**API Error:** ${msg}`));
-        } finally {
-          controller.close();
-        }
-      },
-    });
-
-    return new Response(readable, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-      },
+    return result.toDataStreamResponse({
+      headers: { 'Content-Type': 'text/event-stream' },
     });
   } catch (err: any) {
     console.error('Chat API error:', err);

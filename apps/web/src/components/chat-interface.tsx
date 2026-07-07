@@ -69,7 +69,18 @@ export default function ChatInterface() {
         while (reader) {
           const { done, value } = await reader.read();
           if (done) break;
-          full += decoder.decode(value, { stream: true });
+          const chunk = decoder.decode(value, { stream: true });
+          for (const line of chunk.split('\n').filter(Boolean)) {
+            const colon = line.indexOf(':');
+            if (colon < 0) { full += line; continue }
+            const type = line[0];
+            const val = line.slice(colon + 1);
+            if (type === '0' && val.startsWith('"')) {
+              full += JSON.parse(val);
+            } else if (type === '3') {
+              full += `\n\n*Error: ${val.replace(/"/g, '')}*`;
+            }
+          }
           setStreamingContent(full);
         }
 
