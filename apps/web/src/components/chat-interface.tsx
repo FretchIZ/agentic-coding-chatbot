@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@codeagent/ui';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Paperclip, X } from 'lucide-react';
+import { Paperclip, X, Send, Sparkles } from 'lucide-react';
 import Markdown from './markdown';
 
 interface Message {
@@ -22,10 +22,18 @@ export default function ChatInterface() {
   const [streamingContent, setStreamingContent] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, streamingContent]);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 200) + 'px';
+    }
+  }, [input]);
 
   const { data: agentData } = useQuery({
     queryKey: ['agents'],
@@ -99,27 +107,47 @@ export default function ChatInterface() {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="border-b px-6 py-3">
-        <h1 className="text-lg font-semibold">Kudos.ai</h1>
-        <div className="mt-1 flex flex-wrap gap-2">
+      <header className="border-b px-4 py-3 sm:px-6">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-primary" />
+          <h1 className="text-lg font-semibold">Kudos.ai</h1>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1.5">
           {tools.map((tool: any) => (
-            <span key={tool.name} className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">
+            <span
+              key={tool.name}
+              className="animate-fade-in inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-xs font-medium text-primary transition-all hover:bg-primary/10 hover:shadow-sm"
+            >
               {tool.name}
             </span>
           ))}
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto px-3 py-4 sm:px-6">
+        {messages.length === 0 && !isProcessing && (
+          <div className="flex h-full items-center justify-center">
+            <div className="animate-fade-in text-center">
+              <Sparkles className="mx-auto mb-3 h-10 w-10 text-primary/40" />
+              <h2 className="text-xl font-semibold text-foreground/80">How can I help you?</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Ask a coding question or describe your task</p>
+            </div>
+          </div>
+        )}
         {messages.map((msg, i) => (
-          <div key={i} className={`mb-4 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+          <div
+            key={i}
+            className={`animate-fade-in mb-4 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
             <div
-              className={`max-w-[85%] rounded-lg px-4 py-2 ${
-                msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+              className={`max-w-[90%] rounded-2xl px-4 py-2.5 sm:max-w-[75%] ${
+                msg.role === 'user'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-muted/80 shadow-sm backdrop-blur-sm'
               }`}
             >
               {msg.role === 'user' ? (
-                <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
               ) : (
                 <Markdown content={msg.content} />
               )}
@@ -127,19 +155,23 @@ export default function ChatInterface() {
           </div>
         ))}
         {streamingContent && (
-          <div className="flex justify-start">
-            <div className="max-w-[85%] rounded-lg bg-muted px-4 py-2">
+          <div className="animate-fade-in mb-4 flex justify-start">
+            <div className="max-w-[90%] rounded-2xl bg-muted/80 px-4 py-2.5 shadow-sm backdrop-blur-sm sm:max-w-[75%]">
+              <div className="mb-1 flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                <span className="text-xs font-medium text-primary">Kudos</span>
+              </div>
               <Markdown content={streamingContent} />
             </div>
           </div>
         )}
         {isProcessing && !streamingContent && (
-          <div className="flex justify-start">
-            <div className="rounded-lg bg-muted px-4 py-2">
-              <div className="flex gap-1">
-                <div className="h-2 w-2 animate-bounce rounded-full bg-foreground/50" />
-                <div className="h-2 w-2 animate-bounce rounded-full bg-foreground/50 [animation-delay:0.1s]" />
-                <div className="h-2 w-2 animate-bounce rounded-full bg-foreground/50 [animation-delay:0.2s]" />
+          <div className="animate-fade-in mb-4 flex justify-start">
+            <div className="rounded-2xl bg-muted/80 px-5 py-4 shadow-sm backdrop-blur-sm">
+              <div className="flex gap-1.5">
+                <div className="h-2 w-2 animate-bounce rounded-full bg-primary/60" />
+                <div className="h-2 w-2 animate-bounce rounded-full bg-primary/60 [animation-delay:0.15s]" />
+                <div className="h-2 w-2 animate-bounce rounded-full bg-primary/60 [animation-delay:0.3s]" />
               </div>
             </div>
           </div>
@@ -147,33 +179,64 @@ export default function ChatInterface() {
         <div ref={bottomRef} />
       </div>
 
-      <div className="border-t p-4">
-        {files.length > 0 && (
-          <div className="mb-2 flex flex-wrap gap-2">
-            {files.map((file, i) => (
-              <div key={i} className="flex items-center gap-1 rounded-md border bg-muted px-2 py-1 text-xs">
-                <span className="max-w-[120px] truncate">{file.name}</span>
-                <button onClick={() => removeFile(i)} className="text-muted-foreground hover:text-foreground">
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
+      <div className="border-t bg-background/95 backdrop-blur-sm">
+        <div className="mx-auto max-w-4xl px-3 pb-3 pt-2 sm:px-6">
+          {files.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-2">
+              {files.map((file, i) => (
+                <div
+                  key={i}
+                  className="animate-fade-in flex items-center gap-1.5 rounded-xl border bg-muted/50 px-3 py-1.5 text-xs shadow-sm"
+                >
+                  <span className="max-w-[150px] truncate">{file.name}</span>
+                  <button onClick={() => removeFile(i)} className="text-muted-foreground hover:text-foreground">
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex items-end gap-2 rounded-2xl border border-input bg-background p-2 shadow-sm transition-shadow focus-within:shadow-md focus-within:ring-2 focus-within:ring-ring/30">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".txt,.csv,.json,.ts,.tsx,.js,.jsx,.py,.md,.html,.css"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              type="button"
+              title="Attach file"
+            >
+              <Paperclip className="h-4 w-4" />
+            </button>
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              placeholder="Ask the coding agent..."
+              rows={1}
+              className="min-h-[36px] flex-1 resize-none bg-transparent px-1 py-1.5 text-sm outline-none placeholder:text-muted-foreground"
+              disabled={isProcessing}
+            />
+            <button
+              onClick={handleSend}
+              disabled={!input.trim() || isProcessing}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed"
+              type="button"
+            >
+              <Send className="h-4 w-4" />
+            </button>
           </div>
-        )}
-        <div className="flex gap-2">
-          <input ref={fileInputRef} type="file" multiple accept=".txt,.csv,.json,.ts,.tsx,.js,.jsx,.py,.md,.html,.css" onChange={handleFileSelect} className="hidden" />
-          <button onClick={() => fileInputRef.current?.click()} className="flex h-10 w-10 items-center justify-center rounded-md border border-input bg-background text-muted-foreground hover:text-foreground" type="button">
-            <Paperclip className="h-4 w-4" />
-          </button>
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Ask the coding agent..."
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            disabled={isProcessing}
-          />
-          <Button onClick={handleSend} loading={isProcessing}>Send</Button>
         </div>
       </div>
     </div>

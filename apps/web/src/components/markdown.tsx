@@ -113,7 +113,7 @@ function escapeHtml(text: string): string {
 function renderInline(text: string): string {
   let r = escapeHtml(text);
   r = r.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  r = r.replace(/`(.+?)`/g, '<code class="rounded bg-muted px-1 py-0.5 text-xs font-mono">$1</code>');
+  r = r.replace(/`(.+?)`/g, '<code class="rounded-lg bg-muted px-1.5 py-0.5 text-xs font-mono shadow-sm">$1</code>');
   return r.replace(/\n/g, '<br/>');
 }
 
@@ -151,7 +151,7 @@ export default function Markdown({ content }: { content: string }) {
     const line = lines[i];
     if (line.startsWith('```')) {
       if (!inCode) { flushText(); inCode = true; codeLang = line.slice(3).trim(); codeBuf = []; }
-      else { blocks.push(`<pre class="mb-3 overflow-x-auto rounded-lg bg-muted p-4 text-xs font-mono leading-relaxed"><code class="${codeLang ? 'language-' + escapeHtml(codeLang) : ''}">${escapeHtml(codeBuf.join('\n'))}</code></pre>`); inCode = false; }
+      else { blocks.push(`<pre class="mb-3 overflow-x-auto rounded-xl border bg-muted/80 p-4 text-xs font-mono leading-relaxed shadow-sm backdrop-blur-sm"><code class="${codeLang ? 'language-' + escapeHtml(codeLang) : ''}">${escapeHtml(codeBuf.join('\n'))}</code></pre>`); inCode = false; }
       continue;
     }
     if (inCode) { codeBuf.push(line); continue; }
@@ -169,7 +169,7 @@ export default function Markdown({ content }: { content: string }) {
 
   flushText();
   if (inTable && tableBuf.length > 0) blocks.push(renderTable(tableBuf));
-  if (inCode && codeBuf.length > 0) blocks.push(`<pre class="mb-3 overflow-x-auto rounded-lg bg-muted p-4 text-xs font-mono leading-relaxed"><code>${escapeHtml(codeBuf.join('\n'))}</code></pre>`);
+  if (inCode && codeBuf.length > 0) blocks.push(`<pre class="mb-3 overflow-x-auto rounded-xl border bg-muted/80 p-4 text-xs font-mono leading-relaxed shadow-sm backdrop-blur-sm"><code>${escapeHtml(codeBuf.join('\n'))}</code></pre>`);
 
   return <div className="prose prose-sm max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: blocks.join('\n') }} />;
 }
@@ -182,8 +182,8 @@ function renderTable(rows: string[]): string {
   if (rows.length < 2) return '';
   const h = parseRow(rows[0]);
   const b = rows.slice(2).filter((r) => r.startsWith('|')).map(parseRow);
-  let html = '<div class="overflow-x-auto mb-3"><table class="min-w-full text-sm border-collapse">';
-  html += '<thead><tr>' + h.map((c) => `<th class="border border-muted-foreground/20 bg-muted px-3 py-1.5 text-left font-medium">${c}</th>`).join('') + '</tr></thead>';
-  if (b.length > 0) html += '<tbody>' + b.map((r) => '<tr>' + r.map((c) => `<td class="border border-muted-foreground/20 px-3 py-1.5">${c}</td>`).join('') + '</tr>').join('') + '</tbody>';
+  let html = '<div class="overflow-x-auto mb-3"><table class="min-w-full text-sm border-separate border-spacing-0 rounded-xl border bg-muted/50 shadow-sm">';
+  html += '<thead><tr>' + h.map((c) => `<th class="border-b border-muted-foreground/20 bg-muted px-3 py-2 text-left font-medium first:rounded-tl-xl last:rounded-tr-xl">${c}</th>`).join('') + '</tr></thead>';
+  if (b.length > 0) html += '<tbody>' + b.map((r) => '<tr>' + r.map((c) => `<td class="border-b border-muted-foreground/10 px-3 py-2 last:border-b-0">${c}</td>`).join('') + '</tr>').join('') + '</tbody>';
   return html + '</table></div>';
 }

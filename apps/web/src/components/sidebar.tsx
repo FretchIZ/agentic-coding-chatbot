@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { PanelLeftClose, PanelLeft, Plus, MessageSquare, Trash2 } from 'lucide-react';
+import { PanelLeftClose, PanelLeft, Plus, MessageSquare, Trash2, Sparkles } from 'lucide-react';
 
 interface Conversation {
   id: string;
@@ -23,20 +23,24 @@ export default function Sidebar() {
     <>
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="absolute -left-3 top-3 z-10 flex h-6 w-6 items-center justify-center rounded-full border bg-background text-muted-foreground shadow-sm hover:text-foreground"
+        className="absolute -left-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full border bg-background text-muted-foreground shadow-md transition-all hover:scale-105 hover:text-foreground"
         type="button"
       >
         {collapsed ? <PanelLeft className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}
       </button>
       <aside
-        className={`relative flex flex-col border-r bg-background transition-all duration-200 ${
+        className={`relative flex flex-col border-r bg-background/80 backdrop-blur-sm transition-all duration-300 ${
           collapsed ? 'w-0 overflow-hidden border-r-0' : 'w-72'
         }`}
       >
         <div className="flex h-full min-w-72 flex-col">
           <div className="border-b p-3">
+            <div className="mb-3 flex items-center gap-2 px-1">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <span className="text-sm font-semibold">Kudos.ai</span>
+            </div>
             <button
-              className="flex w-full items-center gap-2 rounded-md border border-dashed border-muted-foreground/30 px-3 py-2 text-sm text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground"
+              className="flex w-full items-center gap-2 rounded-xl border border-dashed border-muted-foreground/30 px-3 py-2.5 text-sm text-muted-foreground transition-all hover:border-primary/50 hover:bg-primary/5 hover:text-primary"
               type="button"
             >
               <Plus className="h-4 w-4" />
@@ -47,14 +51,14 @@ export default function Sidebar() {
             {conversations.map((conv) => (
               <button
                 key={conv.id}
-                className="group flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="group mb-0.5 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-muted-foreground transition-all hover:bg-muted hover:text-foreground active:scale-[0.98]"
                 type="button"
               >
                 <MessageSquare className="h-4 w-4 shrink-0" />
                 <span className="flex-1 truncate">{conv.title}</span>
                 <button
                   onClick={(e) => { e.stopPropagation(); }}
-                  className="hidden shrink-0 text-muted-foreground hover:text-destructive group-hover:block"
+                  className="hidden shrink-0 text-muted-foreground transition-colors hover:text-destructive group-hover:block"
                   type="button"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -62,8 +66,8 @@ export default function Sidebar() {
               </button>
             ))}
           </nav>
-          <div className="border-t p-3 text-xs text-muted-foreground">
-            Kudos.ai Chat
+          <div className="border-t p-4 text-xs text-muted-foreground">
+            Powered by Mistral AI
           </div>
         </div>
       </aside>
