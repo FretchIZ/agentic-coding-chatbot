@@ -44,7 +44,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const stream = streamText({
+    const result = streamText({
       model: anthropic('claude-3-5-sonnet-20241022'),
       messages: messages.map((m: any) => ({ role: m.role, content: m.content })),
       tools: Object.keys(aiTools).length > 0 ? aiTools : undefined,
@@ -52,7 +52,29 @@ export async function POST(req: Request) {
       temperature: 0.7,
     });
 
-    return stream.toTextStreamResponse();
+    const encoder = new TextEncoder();
+    const textStream = result.textStream;
+    const readable = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const chunk of textStream) {
+            controller.enqueue(encoder.encode(chunk));
+          }
+        } catch (e) {
+          controller.enqueue(encoder.encode(`\n\nError: ${e instanceof Error ? e.message : 'Stream failed'}`));
+        } finally {
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(readable, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
   } catch (err: any) {
     console.error('Chat API error:', err);
     return NextResponse.json({ content: `Error: ${err.message}` }, { status: 500 });

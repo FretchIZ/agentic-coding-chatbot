@@ -58,7 +58,7 @@ export default function ChatInterface() {
       if (!res.ok) throw new Error(await res.text());
 
       const contentType = res.headers.get('Content-Type') || '';
-      if (contentType.includes('text/event-stream')) {
+      if (contentType.includes('text/event-stream') || contentType.includes('text/plain')) {
         const reader = res.body?.getReader();
         const decoder = new TextDecoder();
         let full = '';
@@ -67,15 +67,11 @@ export default function ChatInterface() {
           const { done, value } = await reader.read();
           if (done) break;
           const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n').filter((l) => l.startsWith('0:"'));
-          for (const line of lines) {
-            const text = line.slice(3, -1).replace(/\\(.)/g, '$1');
-            full += text;
-            setStreamingContent(full);
-          }
+          full += chunk;
+          setStreamingContent(full);
         }
 
-        setMessages((prev) => [...prev, { role: 'assistant', content: full }]);
+        setMessages((prev) => [...prev, { role: 'assistant', content: full || '(empty response)' }]);
         setStreamingContent('');
       } else {
         const data = await res.json();
