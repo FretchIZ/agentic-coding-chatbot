@@ -63,18 +63,6 @@ function latexLine(s: string): string {
       }
       i = j;
     } else if (s[i] === '^') {
-        if (s[j] === '{') {
-          const [a, n1] = readGroup(s, j);
-          if (s[n1] === '{') {
-            const [b, n2] = readGroup(s, n1);
-            out += latexLine(a) + '/' + latexLine(b);
-            i = n2; continue;
-          }
-          i = n1; continue;
-        }
-      }
-      out += s[i]; i++;
-    } else if (s[i] === '^') {
       if (s[i + 1] === '{') {
         const [c, n] = readGroup(s, i + 1);
         out += [...c].map((ch) => SUPERSCRIPT[ch] || ch).join('');
