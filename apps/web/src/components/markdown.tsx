@@ -11,7 +11,7 @@ const LATEX_SYM: Record<string, string> = {
   pi: 'π', sigma: 'σ', tau: 'τ', phi: 'φ', psi: 'ψ', omega: 'ω',
   infty: '∞', hbar: 'ħ', cdot: '·', times: '×', to: '→',
   rightarrow: '→', leftarrow: '←', approx: '≈', neq: '≠',
-  leq: '≤', geq: '≥', sum: '∑', int: '∫',
+  leq: '≤', geq: '≥', sum: '∑', int: '∫', circ: '°',
 };
 
 function readGroup(s: string, start: number): [string, number] {
@@ -33,10 +33,36 @@ function latexLine(s: string): string {
   while (i < s.length) {
     if (s[i] === '\\') {
       let j = i + 1;
+      if (j < s.length && s[j] === '(') { out += '('; i = j + 1; continue; }
+      if (j < s.length && s[j] === ')') { out += ')'; i = j + 1; continue; }
+      if (j < s.length && s[j] === '|') { out += '|'; i = j + 1; continue; }
+      if (j < s.length && /[^a-zA-Z]/.test(s[j])) { out += s[j]; i = j + 1; continue; }
       while (j < s.length && /[a-zA-Z]/.test(s[j])) j++;
       const name = s.slice(i + 1, j);
+      if (name === 'text' || name === 'mathrm') {
+        if (s[j] === '{') { const [c, n] = readGroup(s, j); out += c; i = n; continue; }
+        i = j; continue;
+      }
+      if (name === 'sqrt') {
+        if (s[j] === '{') { const [c, n] = readGroup(s, j); out += '√' + c; i = n; continue; }
+        out += '√'; i = j; continue;
+      }
       if (LATEX_SYM[name]) { out += LATEX_SYM[name]; i = j; continue; }
+      if (['sin','cos','tan','log','ln','sec','csc','cot'].includes(name)) { out += name; i = j; continue; }
+      if (['left','right','big','bigg','bigl','bigr','biggl','biggr'].includes(name)) { i = j; continue; }
       if (name === 'frac') {
+        if (s[j] === '{') {
+          const [a, n1] = readGroup(s, j);
+          if (s[n1] === '{') {
+            const [b, n2] = readGroup(s, n1);
+            out += latexLine(a) + '/' + latexLine(b);
+            i = n2; continue;
+          }
+          i = n1; continue;
+        }
+      }
+      i = j;
+    } else if (s[i] === '^') {
         if (s[j] === '{') {
           const [a, n1] = readGroup(s, j);
           if (s[n1] === '{') {
