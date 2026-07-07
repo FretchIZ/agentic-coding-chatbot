@@ -44,18 +44,21 @@ export async function POST(req: Request) {
       }
     }
 
-    const result = streamText({
-      model: anthropic('claude-3-5-sonnet-20241022'),
-      messages: messages.map((m: any) => ({ role: m.role, content: m.content })),
-      tools: Object.keys(aiTools).length > 0 ? aiTools : undefined,
-      maxTokens: 8192,
-      temperature: 0.7,
-    });
+    const { createDataStreamResponse } = await import('ai');
 
-    return result.toDataStreamResponse({
-      headers: {
-        'Content-Type': 'text/event-stream',
+    return createDataStreamResponse({
+      execute: async (dataStream) => {
+        const result = streamText({
+          model: anthropic('claude-3-5-sonnet-20241022'),
+          messages: messages.map((m: any) => ({ role: m.role, content: m.content })),
+          tools: Object.keys(aiTools).length > 0 ? aiTools : undefined,
+          maxTokens: 8192,
+          temperature: 0.7,
+        });
+
+        result.mergeIntoDataStream(dataStream);
       },
+      onError: (error) => `Anthropic API error: ${error.message}`,
     });
   } catch (err: any) {
     console.error('Chat API error:', err);
