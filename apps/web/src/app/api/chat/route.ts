@@ -10,16 +10,35 @@ const MISTRAL_API_URL = 'https://api.mistral.ai/v1/chat/completions';
 
 export async function POST(req: Request) {
   try {
-    const { messages } = await req.json();
+    const { messages, webSearch } = await req.json();
 
     if (TEST_MODE) {
       return NextResponse.json({ content: mockResponse(messages) });
     }
 
-    const mistralMessages = messages.map((m: any) => ({
+    let mistralMessages = messages.map((m: any) => ({
       role: m.role,
       content: m.content,
     }));
+
+    if (webSearch) {
+      const last = messages[messages.length - 1]?.content;
+      if (last) {
+        try {
+          const base = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : new URL(req.url).origin;
+          const searchRes = await fetch(`${base}/api/web-search?q=${encodeURIComponent(last)}`, { cache: 'no-store' });
+          if (searchRes.ok) {
+            const { results } = await searchRes.json();
+            if (results) {
+              mistralMessages = [
+                { role: 'system', content: `Web search results for "${last}":\n${results}\n\nAnswer the user based on these results.` },
+                ...mistralMessages,
+              ];
+            }
+          }
+        } catch {}
+      }
+    }
 
     const res = await fetch(MISTRAL_API_URL, {
       method: 'POST',

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Paperclip, X, Send, Sparkles } from 'lucide-react';
+import { Paperclip, X, Send, Sparkles, Globe } from 'lucide-react';
 import Markdown from './markdown';
 import type { Conversation, Message } from '@/lib/use-conversations';
 
@@ -25,6 +25,7 @@ export default function ChatInterface({ conversation, onAddMessage }: Props) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [streamingContent, setStreamingContent] = useState('');
+  const [webSearch, setWebSearch] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -81,7 +82,7 @@ export default function ChatInterface({ conversation, onAddMessage }: Props) {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: chatMessages, tools }),
+        body: JSON.stringify({ messages: chatMessages, tools, webSearch }),
       });
 
       if (!res.ok) throw new Error(await res.text());
@@ -220,6 +221,18 @@ export default function ChatInterface({ conversation, onAddMessage }: Props) {
               title="Attach file"
             >
               <Paperclip className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setWebSearch((w) => !w)}
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all ${
+                webSearch
+                  ? 'bg-primary/10 text-primary shadow-sm'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+              type="button"
+              title="Web search"
+            >
+              <Globe className="h-4 w-4" />
             </button>
             <textarea
               ref={textareaRef}
