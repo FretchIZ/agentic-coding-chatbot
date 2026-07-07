@@ -141,7 +141,10 @@ export default function Markdown({ content }: { content: string }) {
     } else if (/^---/.test(t)) {
       blocks.push('<hr class="my-4 border-muted-foreground/20"/>');
     } else {
-      t.split('\n').filter(Boolean).forEach((l) => blocks.push(`<p class="mb-2 text-sm leading-relaxed">${renderInline(l)}</p>`));
+      t.split('\n').filter(Boolean).forEach((l) => {
+        const cleaned = l.replace(/^#{1,3}\s/, '');
+        blocks.push(`<p class="mb-2 text-sm leading-relaxed">${renderInline(cleaned)}</p>`);
+      });
     }
     textBuf = [];
   }
@@ -163,6 +166,7 @@ export default function Markdown({ content }: { content: string }) {
       if (!line.startsWith('|')) { blocks.push(renderTable(tableBuf)); inTable = false; tableBuf = []; textBuf.push(line); continue; }
       tableBuf.push(line); continue;
     }
+    if (line.trim() === '') { flushText(); continue; }
     textBuf.push(line);
   }
 
