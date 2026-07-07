@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { searchWeb } from '@/lib/search';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -24,17 +25,15 @@ export async function POST(req: Request) {
     if (webSearch) {
       const last = messages[messages.length - 1]?.content;
       if (last) {
-        try {
-          const base = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : new URL(req.url).origin;
-          const searchRes = await fetch(`${base}/api/web-search?q=${encodeURIComponent(last)}`, { cache: 'no-store' });
-          if (searchRes.ok) {
-            const { results } = await searchRes.json();
-            if (results) {
-              mistralMessages = [
-                { role: 'system', content: `Web search results for "${last}":\n${results}\n\nAnswer the user based on these results.` },
-                ...mistralMessages,
-              ];
-            }
+        const results = await searchWeb(last);
+        if (results) {
+          mistralMessages = [
+            { role: 'system', content: `Web search results for "${last}":\n${results}\n\nAnswer the user based on these results.` },
+            ...mistralMessages,
+          ];
+        }
+      }
+    }
           }
         } catch {}
       }
