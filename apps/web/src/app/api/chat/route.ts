@@ -34,10 +34,6 @@ export async function POST(req: Request) {
         }
       }
     }
-          }
-        } catch {}
-      }
-    }
 
     const res = await fetch(MISTRAL_API_URL, {
       method: 'POST',
