@@ -1,25 +1,98 @@
 'use client';
 
 const SUPERSCRIPTS: Record<string, string> = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹', '-': '⁻', '+': '⁺', 'n': 'ⁿ' };
-const GREEK: Record<string, string> = { alpha: 'α', beta: 'β', gamma: 'γ', delta: 'δ', epsilon: 'ε', zeta: 'ζ', eta: 'η', theta: 'θ', iota: 'ι', kappa: 'κ', lambda: 'λ', mu: 'μ', nu: 'ν', xi: 'ξ', omicron: 'ο', pi: 'π', rho: 'ρ', sigma: 'σ', tau: 'τ', upsilon: 'υ', phi: 'φ', chi: 'χ', psi: 'ψ', omega: 'ω', Gamma: 'Γ', Delta: 'Δ', Theta: 'Θ', Lambda: 'Λ', Xi: 'Ξ', Pi: 'Π', Sigma: 'Σ', Phi: 'Φ', Psi: 'Ψ', Omega: 'Ω', partial: '∂', nabla: '∇', hbar: 'ħ', infty: '∞', inft: '∞' };
 
 function latexToPlain(text: string): string {
   let s = text;
 
-  s = s.replace(/\\\[([\s\S]*?)\\\]/g, (_, m) => `\n${latexLine(m.trim())}\n`);
+  s = s.replace(/\\\[([\s\S]*?)\\\]/g, (_, m) => '\n' + latexLine(m.trim()) + '\n');
   s = s.replace(/\\\(([\s\S]*?)\\\)/g, (_, m) => latexLine(m.trim()));
 
   return s;
 }
 
+const LATEX_SYMBOLS: Record<string, string> = {
+  partial: '∂', nabla: '∇', alpha: 'α', beta: 'β', gamma: 'γ', delta: 'δ',
+  epsilon: 'ε', zeta: 'ζ', eta: 'η', theta: 'θ', iota: 'ι', kappa: 'κ',
+  lambda: 'λ', mu: 'μ', nu: 'ν', xi: 'ξ', pi: 'π', rho: 'ρ', sigma: 'σ',
+  tau: 'τ', phi: 'φ', chi: 'χ', psi: 'ψ', omega: 'ω',
+  infty: '∞', hbar: 'ħ', cdot: '·', times: '×', to: '→', rightarrow: '→',
+  leftarrow: '←', Rightarrow: '⇒', approx: '≈', neq: '≠', leq: '≤', geq: '≥',
+  sum: '∑', int: '∫', prod: '∏', in: '∈', subset: '⊂', supset: '⊃',
+};
+
 function latexLine(s: string): string {
-  s = s.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, (_, a, b) => `${latexLine(a)}/${latexLine(b)}`);
-  s = s.replace(/\^\{([^}]+)\}/g, (_, d) => [...d].map((c: string) => SUPERSCRIPTS[c] || c).join(''));
-  s = s.replace(/\^(\d)/g, (_, d) => SUPERSCRIPTS[d] || d);
-  s = s.replace(/\{([^}]+)\}/g, (_, m) => m);
-  s = s.replace(/\\([a-zA-Z]+)/g, (_, name) => GREEK[name] || (name === 'cdot' ? '·' : name === 'times' ? '×' : name === 'to' || name === 'rightarrow' ? '→' : name === 'leftarrow' ? '←' : name === 'Rightarrow' ? '⇒' : name === 'approx' ? '≈' : name === 'neq' ? '≠' : name === 'leq' ? '≤' : name === 'geq' ? '≥' : name === 'cdot' ? '·' : name === 'sum' ? '∑' : name === 'int' ? '∫' : name === 'prod' ? '∏' : name === 'quad' || name === 'qquad' ? '  ' : name === 'quad' ? ' ' : ''));
-  s = s.replace(/\\\s*/g, '');
-  return s;
+  let result = '';
+  let i = 0;
+  while (i < s.length) {
+    if (s[i] === '\\') {
+      const start = i + 1;
+      let j = start;
+      while (j < s.length && /[a-zA-Z]/.test(s[j])) j++;
+      const name = s.slice(start, j);
+      if (LATEX_SYMBOLS[name]) {
+        result += LATEX_SYMBOLS[name];
+        i = j;
+        continue;
+      }
+      if (name === 'frac') {
+        if (s[j] === '{') {
+          const [a, next1] = latexReadGroup(s, j);
+          if (next1 < s.length && s[next1] === '{') {
+            const [b, next2] = latexReadGroup(s, next1);
+            result += latexLine(a) + '/' + latexLine(b);
+            i = next2;
+            continue;
+          }
+          i = next1;
+          continue;
+        }
+      }
+      result += s[i];
+      i++;
+    } else if (s[i] === '^') {
+      if (i + 1 < s.length && s[i + 1] === '{') {
+        const [content, next] = latexReadGroup(s, i + 1);
+        result += [...content].map((c) => SUPERSCRIPTS[c] || c).join('');
+        i = next;
+      } else if (i + 1 < s.length && /\d/.test(s[i + 1])) {
+        result += SUPERSCRIPTS[s[i + 1]] || s[i + 1];
+        i += 2;
+      } else {
+        result += s[i];
+        i++;
+      }
+    } else if (s[i] === '_') {
+      if (i + 1 < s.length && s[i + 1] === '{') {
+        const [content, next] = latexReadGroup(s, i + 1);
+        result += content;
+        i = next;
+      } else {
+        result += s[i];
+        i++;
+      }
+    } else if (s[i] === '{' || s[i] === '}') {
+      i++;
+    } else {
+      result += s[i];
+      i++;
+    }
+  }
+  return result;
+}
+
+function latexReadGroup(s: string, start: number): [string, number] {
+  if (s[start] !== '{') return ['', start + 1];
+  let depth = 1;
+  let i = start + 1;
+  const buf: string[] = [];
+  while (i < s.length && depth > 0) {
+    if (s[i] === '{') depth++;
+    else if (s[i] === '}') depth--;
+    if (depth > 0) buf.push(s[i]);
+    i++;
+  }
+  return [buf.join(''), i];
 }
 
 function escapeHtml(text: string): string {
