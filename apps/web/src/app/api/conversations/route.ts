@@ -12,7 +12,7 @@ export async function GET() {
   if (!dbAvailable()) return NextResponse.json([]);
   try {
     const chats = await prisma.chat.findMany({ orderBy: { updatedAt: 'desc' } });
-    return NextResponse.json(chats.map((c) => ({ id: c.id, title: c.title, createdAt: c.createdAt.toISOString(), updatedAt: c.updatedAt.toISOString(), messages: [] })));
+    return NextResponse.json(chats.map((c: { id: string; title: string; createdAt: Date; updatedAt: Date }) => ({ id: c.id, title: c.title, createdAt: c.createdAt.toISOString(), updatedAt: c.updatedAt.toISOString(), messages: [] })));
   } catch { return NextResponse.json([]); }
 }
 
