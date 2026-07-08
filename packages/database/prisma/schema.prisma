@@ -161,7 +161,6 @@ model Document {
   content   String
   metadata  Json?
   projectId String?
-  embedding Vector?  @db.vector(1536)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
