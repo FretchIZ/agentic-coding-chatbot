@@ -20,7 +20,7 @@ export default async function HomePage() {
       <main className="flex-1">
         <section className="mx-auto max-w-7xl px-4 py-24 text-center">
           <h1 className="mb-6 text-5xl font-bold tracking-tight">
-            AI-Powered<br /><span className="text-primary">Coding Assistant</span>
+            AI-Powered<br /><span className="text-primary">Coding Tools</span>
           </h1>
           <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground">
             Smart chat powered by Mistral AI. Persistent conversations, Markdown rendering, and code formatting — all in one place.

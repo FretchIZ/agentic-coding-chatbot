@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Sai.ai',
-  description: 'AI-powered coding assistant',
+  description: 'AI-powered coding tools',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
