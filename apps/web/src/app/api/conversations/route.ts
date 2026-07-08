@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@codeagent/database';
+import { getPrisma } from '@codeagent/database';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -11,7 +11,8 @@ function dbAvailable(): boolean {
 export async function GET() {
   if (!dbAvailable()) return NextResponse.json([]);
   try {
-    const chats = await prisma.chat.findMany({ orderBy: { updatedAt: 'desc' } });
+    const p = getPrisma();
+    const chats = await p.chat.findMany({ orderBy: { updatedAt: 'desc' } });
     return NextResponse.json(chats.map((c: { id: string; title: string; createdAt: Date; updatedAt: Date }) => ({ id: c.id, title: c.title, createdAt: c.createdAt.toISOString(), updatedAt: c.updatedAt.toISOString(), messages: [] })));
   } catch { return NextResponse.json([]); }
 }
@@ -25,7 +26,8 @@ export async function POST(req: Request) {
   }
   try {
     const { title } = await req.json();
-    const chat = await prisma.chat.create({ data: { title: title || 'New Chat' } });
+    const p = getPrisma();
+    const chat = await p.chat.create({ data: { title: title || 'New Chat' } });
     return NextResponse.json({ id: chat.id, title: chat.title, messages: [], createdAt: chat.createdAt.toISOString(), updatedAt: chat.updatedAt.toISOString() });
   } catch { return NextResponse.json({ error: 'Failed to create' }, { status: 500 }); }
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@codeagent/database';
+import { getPrisma } from '@codeagent/database';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -13,8 +13,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { role, content } = await req.json();
   if (!dbAvailable()) return NextResponse.json({ ok: true });
   try {
-    await prisma.message.create({ data: { chatId: id, role: role || 'user', content: content || '' } });
-    await prisma.chat.update({ where: { id }, data: { updatedAt: new Date() } });
+    const p = getPrisma();
+    await p.message.create({ data: { chatId: id, role: role || 'user', content: content || '' } });
+    await p.chat.update({ where: { id }, data: { updatedAt: new Date() } });
     return NextResponse.json({ ok: true });
   } catch { return NextResponse.json({ error: 'Failed' }, { status: 500 }); }
 }
