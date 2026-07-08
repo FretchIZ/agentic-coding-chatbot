@@ -17,6 +17,7 @@
     "@codeagent/auth": "*",
     "@codeagent/shared": "*",
     "@codeagent/agents": "*",
+    "@codeagent/database": "*",
     "@codeagent/editor": "*",
     "@codeagent/terminal": "*",
     "@codeagent/memory": "*",
