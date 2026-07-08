@@ -1,18 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Paperclip, X, Send, Sparkles, Globe } from 'lucide-react';
+import { Plus, X, Send, Sparkles, Share2, Download } from 'lucide-react';
 import Markdown from './markdown';
 import type { Conversation, Message } from '@/lib/use-conversations';
-
-interface Props {
-  conversation: Conversation | null;
-  onAddMessage: (msg: Message) => void;
-}
-
-const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/svg+xml', 'image/webp'];
 
 interface Props {
   conversation: Conversation | null;
@@ -25,7 +17,6 @@ export default function ChatInterface({ conversation, onAddMessage }: Props) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [streamingContent, setStreamingContent] = useState('');
-  const [webSearch, setWebSearch] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -46,21 +37,9 @@ export default function ChatInterface({ conversation, onAddMessage }: Props) {
     }
   }, [input]);
 
-  const { data: agentData } = useQuery({
-    queryKey: ['agents'],
-    queryFn: () => fetch('/api/agents').then((r) => r.json()),
-  });
-  const tools = agentData?.tools || [];
-
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
-    const newFiles = Array.from(e.target.files);
-    const images = newFiles.filter((f) => IMAGE_TYPES.includes(f.type));
-    if (images.length > 0) {
-      toast.error('Mistral does not support image input. Only text and code files are supported.');
-      return;
-    }
-    setFiles((prev) => [...prev, ...newFiles]);
+    setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
     e.target.value = '';
   };
 
@@ -82,7 +61,7 @@ export default function ChatInterface({ conversation, onAddMessage }: Props) {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: chatMessages, tools, webSearch, execute: true }),
+        body: JSON.stringify({ messages: chatMessages, webSearch: true, execute: true }),
       });
 
       if (!res.ok) throw new Error(await res.text());
@@ -158,7 +137,32 @@ export default function ChatInterface({ conversation, onAddMessage }: Props) {
               {msg.role === 'user' ? (
                 <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
               ) : (
-                <Markdown content={msg.content} />
+                <>
+                  <Markdown content={msg.content} />
+                  <div className="mt-2 flex items-center gap-1 border-t border-border/40 pt-1.5">
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(msg.content); toast.success('Copied'); }}
+                      className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                      title="Copy"
+                    >
+                      <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    </button>
+                    <button
+                      onClick={() => { const blob = new Blob([msg.content], { type: 'text/plain' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `sai-response.txt`; a.click(); URL.revokeObjectURL(a.href); }}
+                      className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                      title="Download"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => { if (navigator.share) navigator.share({ text: msg.content }); else navigator.clipboard.writeText(msg.content); }}
+                      className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                      title="Share"
+                    >
+                      <Share2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -210,29 +214,17 @@ export default function ChatInterface({ conversation, onAddMessage }: Props) {
               ref={fileInputRef}
               type="file"
               multiple
-              accept=".txt,.csv,.json,.ts,.tsx,.js,.jsx,.py,.md,.html,.css"
-              onChange={handleFileSelect}
+               accept="*"
+               onChange={handleFileSelect}
               className="hidden"
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors hover:bg-primary/20"
               type="button"
               title="Attach file"
             >
-              <Paperclip className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setWebSearch((w) => !w)}
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all ${
-                webSearch
-                  ? 'bg-primary/10 text-primary shadow-sm'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`}
-              type="button"
-              title="Web search"
-            >
-              <Globe className="h-4 w-4" />
+              <Plus className="h-4 w-4" />
             </button>
             <textarea
               ref={textareaRef}
