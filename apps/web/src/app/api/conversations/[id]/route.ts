@@ -14,7 +14,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   try {
     const chat = await prisma.chat.findUnique({ where: { id }, include: { messages: { orderBy: { createdAt: 'asc' } } } });
     if (!chat) return NextResponse.json(null, { status: 404 });
-    return NextResponse.json({ id: chat.id, title: chat.title, messages: chat.messages.map((m) => ({ role: m.role, content: m.content })), createdAt: chat.createdAt.toISOString(), updatedAt: chat.updatedAt.toISOString() });
+    return NextResponse.json({ id: chat.id, title: chat.title, messages: chat.messages.map((m: { role: string; content: string }) => ({ role: m.role, content: m.content })), createdAt: chat.createdAt.toISOString(), updatedAt: chat.updatedAt.toISOString() });
   } catch { return NextResponse.json(null, { status: 500 }); }
 }
 
@@ -34,7 +34,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (title) data.title = title;
     if (messages) {
       await prisma.message.deleteMany({ where: { chatId: id } });
-      await prisma.message.createMany({ data: messages.map((m: any) => ({ chatId: id, role: m.role, content: m.content })) });
+      await prisma.message.createMany({ data: messages.map((m: { role: string; content: string }) => ({ chatId: id, role: m.role, content: m.content })) });
     }
     if (Object.keys(data).length > 0) await prisma.chat.update({ where: { id }, data });
     return NextResponse.json({ ok: true });
