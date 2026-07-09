@@ -18,6 +18,7 @@ const nextConfig = {
   experimental: {
     externalDir: true,
   },
+  serverExternalPackages: ['@opentelemetry/api'],
 };
 
 module.exports = nextConfig;
