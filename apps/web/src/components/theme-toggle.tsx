@@ -1,11 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Moon, Sun } from 'lucide-react';
 
 export default function ThemeToggle() {
   const [dark, setDark] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const stored = localStorage.getItem('theme');
     const preferred = stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme:dark)').matches);
     setDark(preferred);
@@ -19,9 +22,16 @@ export default function ThemeToggle() {
     localStorage.setItem('theme', next ? 'dark' : 'light');
   };
 
+  if (!mounted) return <div className="h-9 w-9" />;
+
   return (
-    <button onClick={toggle} type="button" className="rounded-md border border-input bg-background p-2 text-sm hover:bg-accent" title="Toggle theme">
-      {dark ? '☀️' : '🌙'}
+    <button
+      onClick={toggle}
+      type="button"
+      className="btn-ghost h-9 w-9 p-0"
+      title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+    >
+      {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
     </button>
   );
 }

@@ -11,12 +11,15 @@ interface Props {
   onAddMessage: (msg: Message) => void;
 }
 
+const IMAGE_EXT = /\.(png|jpg|jpeg|gif|webp|svg)$/i;
+
 export default function ChatInterface({ conversation, onAddMessage }: Props) {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [streamingContent, setStreamingContent] = useState('');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -39,7 +42,12 @@ export default function ChatInterface({ conversation, onAddMessage }: Props) {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
-    setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+    const newFiles = Array.from(e.target.files);
+    const images = newFiles.filter((f) => IMAGE_EXT.test(f.name));
+    if (images.length > 0 && images[0]) {
+      setPreviewUrl(URL.createObjectURL(images[0]));
+    }
+    setFiles((prev) => [...prev, ...newFiles]);
     e.target.value = '';
   };
 
@@ -161,7 +169,25 @@ export default function ChatInterface({ conversation, onAddMessage }: Props) {
                     >
                       <Share2 className="h-3.5 w-3.5" />
                     </button>
-                  </div>
+      </div>
+
+      {previewUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in"
+          onClick={() => { setPreviewUrl(null); URL.revokeObjectURL(previewUrl); }}
+        >
+          <div className="relative max-h-[85vh] max-w-[90vw] animate-fade-in-scale">
+            <img src={previewUrl} alt="Preview" className="max-h-[85vh] max-w-[90vw] rounded-2xl shadow-2xl object-contain" />
+            <button
+              onClick={() => { setPreviewUrl(null); URL.revokeObjectURL(previewUrl); }}
+              className="absolute -top-3 -right-3 flex h-8 w-8 items-center justify-center rounded-full bg-background shadow-md text-muted-foreground hover:text-foreground"
+              type="button"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
                 </>
               )}
             </div>
@@ -199,9 +225,17 @@ export default function ChatInterface({ conversation, onAddMessage }: Props) {
               {files.map((file, i) => (
                 <div
                   key={i}
-                  className="animate-fade-in flex items-center gap-1.5 rounded-xl border bg-muted/50 px-3 py-1.5 text-xs shadow-sm"
+                  className="animate-fade-in flex items-center gap-1.5 rounded-xl border bg-muted/50 px-2 py-1 text-xs shadow-sm"
                 >
-                  <span className="max-w-[150px] truncate">{file.name}</span>
+                  {IMAGE_EXT.test(file.name) ? (
+                    <img
+                      src={URL.createObjectURL(file)}
+                      className="h-6 w-6 rounded object-cover cursor-pointer"
+                      onClick={() => setPreviewUrl(URL.createObjectURL(file))}
+                      alt={file.name}
+                    />
+                  ) : null}
+                  <span className="max-w-[120px] truncate">{file.name}</span>
                   <button onClick={() => removeFile(i)} className="text-muted-foreground hover:text-foreground">
                     <X className="h-3 w-3" />
                   </button>
@@ -214,8 +248,8 @@ export default function ChatInterface({ conversation, onAddMessage }: Props) {
               ref={fileInputRef}
               type="file"
               multiple
-               accept="*"
-               onChange={handleFileSelect}
+              accept="*"
+              onChange={handleFileSelect}
               className="hidden"
             />
             <button
