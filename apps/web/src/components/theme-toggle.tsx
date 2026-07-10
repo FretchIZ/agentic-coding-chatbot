@@ -1,37 +1,28 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Moon, Sun } from 'lucide-react';
+import { Moon, Sun, Monitor } from 'lucide-react';
+import { useTheme } from '@/components/theme-provider';
 
 export default function ThemeToggle() {
-  const [dark, setDark] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const { theme, setTheme } = useTheme();
 
-  useEffect(() => {
-    setMounted(true);
-    const stored = localStorage.getItem('theme');
-    const preferred = stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme:dark)').matches);
-    setDark(preferred);
-    document.documentElement.classList.toggle('dark', preferred);
-  }, []);
-
-  const toggle = () => {
-    const next = !dark;
-    setDark(next);
-    document.documentElement.classList.toggle('dark', next);
-    localStorage.setItem('theme', next ? 'dark' : 'light');
+  const cycle = () => {
+    if (theme === 'light') setTheme('dark');
+    else if (theme === 'dark') setTheme('system');
+    else setTheme('light');
   };
 
-  if (!mounted) return <div className="h-9 w-9" />;
+  const icon = theme === 'dark' ? <Sun className="h-4 w-4" /> : theme === 'system' ? <Moon className="h-4 w-4" /> : <Monitor className="h-4 w-4" />;
+  const label = theme === 'dark' ? 'Switch to light' : theme === 'system' ? 'Switch to dark' : 'Switch to system';
 
   return (
     <button
-      onClick={toggle}
+      onClick={cycle}
       type="button"
       className="btn-ghost h-9 w-9 p-0"
-      title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+      title={label}
     >
-      {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      {icon}
     </button>
   );
 }
