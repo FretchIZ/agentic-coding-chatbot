@@ -1,6 +1,0 @@
-{
-  "framework": "nextjs",
-  "buildCommand": "npx turbo build --filter=...web && cp -r apps/web/.next .next",
-  "outputDirectory": ".next",
-  "installCommand": "npm install"
-}
