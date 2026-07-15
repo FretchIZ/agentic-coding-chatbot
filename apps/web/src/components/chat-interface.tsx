@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Plus, X, Send, Sparkles, Share2, Download } from 'lucide-react';
+import { Plus, X, Send, Sparkles, Share2, Download, Terminal } from 'lucide-react';
 import Markdown from './markdown';
 import type { Conversation, Message } from '@/lib/use-conversations';
 
@@ -20,6 +20,7 @@ export default function ChatInterface({ conversation, onAddMessage }: Props) {
   const [files, setFiles] = useState<File[]>([]);
   const [streamingContent, setStreamingContent] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [agentMode, setAgentMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -66,10 +67,15 @@ export default function ChatInterface({ conversation, onAddMessage }: Props) {
 
     try {
       const chatMessages = updated.map((m) => ({ role: m.role, content: m.content }));
-      const res = await fetch('/api/chat', {
+      const endpoint = agentMode ? '/api/code-agent' : '/api/chat';
+      const body = agentMode
+        ? JSON.stringify({ messages: chatMessages })
+        : JSON.stringify({ messages: chatMessages, webSearch: true, execute: true });
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: chatMessages, webSearch: true, execute: true }),
+        body,
       });
 
       if (!res.ok) throw new Error(await res.text());
@@ -114,19 +120,57 @@ export default function ChatInterface({ conversation, onAddMessage }: Props) {
   return (
     <div className="flex h-full flex-col">
       <header className="border-b px-4 py-3 sm:px-6">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-primary" />
-          <h1 className="text-lg font-semibold">Sai.ai</h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className={`h-5 w-5 ${agentMode ? 'text-emerald-500' : 'text-primary'}`} />
+            <h1 className="text-lg font-semibold">{agentMode ? 'Coding Agent' : 'Sai.ai'}</h1>
+          </div>
+          <button
+            onClick={() => setAgentMode((a) => !a)}
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium transition-all ${
+              agentMode
+                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                : 'text-muted-foreground hover:bg-muted'
+            }`}
+            type="button"
+          >
+            <Terminal className="h-3.5 w-3.5" />
+            {agentMode ? 'Agent ON' : 'Agent'}
+          </button>
         </div>
       </header>
 
       <div className="flex-1 overflow-y-auto px-3 py-4 sm:px-6">
         {messages.length === 0 && !isProcessing && (
           <div className="flex h-full items-center justify-center">
-            <div className="animate-fade-in text-center">
-              <Sparkles className="mx-auto mb-3 h-10 w-10 text-primary/40" />
-              <h2 className="text-xl font-semibold text-foreground/80">How can I help you?</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Ask a coding question or describe your task</p>
+            <div className="animate-fade-in text-center max-w-sm">
+              {agentMode ? (
+                <>
+                  <Terminal className="mx-auto mb-3 h-10 w-10 text-emerald-500/40" />
+                  <h2 className="text-xl font-semibold text-foreground/80">Autonomous Coding Agent</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Ask me to refactor, debug, or build features across your codebase. I can explore, edit, test, and iterate on multiple files.
+                  </p>
+                  <div className="mt-4 flex flex-wrap justify-center gap-2">
+                    {['Refactor this component', 'Find and fix bugs', 'Add a new feature', 'Optimize performance'].map((hint) => (
+                      <button
+                        key={hint}
+                        onClick={() => { setInput(hint); }}
+                        className="rounded-lg border bg-muted/50 px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                        type="button"
+                      >
+                        {hint}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mx-auto mb-3 h-10 w-10 text-primary/40" />
+                  <h2 className="text-xl font-semibold text-foreground/80">How can I help you?</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">Ask a coding question or describe your task</p>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -139,13 +183,21 @@ export default function ChatInterface({ conversation, onAddMessage }: Props) {
               className={`max-w-[90%] rounded-2xl px-4 py-2.5 sm:max-w-[75%] ${
                 msg.role === 'user'
                   ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'bg-muted/80 shadow-sm backdrop-blur-sm'
+                  : agentMode
+                    ? 'bg-emerald-500/5 border border-emerald-500/10 shadow-sm'
+                    : 'bg-muted/80 shadow-sm backdrop-blur-sm'
               }`}
             >
               {msg.role === 'user' ? (
                 <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
               ) : (
                 <>
+                  {agentMode && (
+                    <div className="mb-1.5 flex items-center gap-1.5">
+                      <Terminal className="h-3.5 w-3.5 text-emerald-500" />
+                      <span className="text-xs font-medium text-emerald-500">Agent</span>
+                    </div>
+                  )}
                   <Markdown content={msg.content} />
                   <div className="mt-2 flex items-center gap-1 border-t border-border/40 pt-1.5">
                     <button
@@ -169,25 +221,7 @@ export default function ChatInterface({ conversation, onAddMessage }: Props) {
                     >
                       <Share2 className="h-3.5 w-3.5" />
                     </button>
-      </div>
-
-      {previewUrl && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in"
-          onClick={() => { setPreviewUrl(null); URL.revokeObjectURL(previewUrl); }}
-        >
-          <div className="relative max-h-[85vh] max-w-[90vw] animate-fade-in-scale">
-            <img src={previewUrl} alt="Preview" className="max-h-[85vh] max-w-[90vw] rounded-2xl shadow-2xl object-contain" />
-            <button
-              onClick={() => { setPreviewUrl(null); URL.revokeObjectURL(previewUrl); }}
-              className="absolute -top-3 -right-3 flex h-8 w-8 items-center justify-center rounded-full bg-background shadow-md text-muted-foreground hover:text-foreground"
-              type="button"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
+                  </div>
                 </>
               )}
             </div>
@@ -195,11 +229,17 @@ export default function ChatInterface({ conversation, onAddMessage }: Props) {
         ))}
         {streamingContent && (
           <div className="animate-fade-in mb-4 flex justify-start">
-            <div className="max-w-[90%] rounded-2xl bg-muted/80 px-4 py-2.5 shadow-sm backdrop-blur-sm sm:max-w-[75%]">
-              <div className="mb-1 flex items-center gap-1.5">
-                <Sparkles className="h-3.5 w-3.5 text-primary" />
-                <span className="text-xs font-medium text-primary">Sai</span>
-              </div>
+            <div className={`max-w-[90%] rounded-2xl px-4 py-2.5 sm:max-w-[75%] ${
+              agentMode
+                ? 'bg-emerald-500/5 border border-emerald-500/10 shadow-sm'
+                : 'bg-muted/80 shadow-sm backdrop-blur-sm'
+            }`}>
+              {agentMode && (
+                <div className="mb-1.5 flex items-center gap-1.5">
+                  <Terminal className="h-3.5 w-3.5 text-emerald-500" />
+                  <span className="text-xs font-medium text-emerald-500">Agent</span>
+                </div>
+              )}
               <Markdown content={streamingContent} />
             </div>
           </div>
@@ -270,7 +310,7 @@ export default function ChatInterface({ conversation, onAddMessage }: Props) {
                   handleSend();
                 }
               }}
-              placeholder="Ask the coding agent..."
+              placeholder={agentMode ? 'Ask the coding agent to build, refactor, or debug...' : 'Ask the coding agent...'}
               rows={1}
               className="min-h-[36px] flex-1 resize-none bg-transparent px-1 py-1.5 text-sm outline-none placeholder:text-muted-foreground"
               disabled={isProcessing}
@@ -286,6 +326,24 @@ export default function ChatInterface({ conversation, onAddMessage }: Props) {
           </div>
         </div>
       </div>
+
+      {previewUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in"
+          onClick={() => { setPreviewUrl(null); URL.revokeObjectURL(previewUrl); }}
+        >
+          <div className="relative max-h-[85vh] max-w-[90vw] animate-fade-in-scale">
+            <img src={previewUrl} alt="Preview" className="max-h-[85vh] max-w-[90vw] rounded-2xl shadow-2xl object-contain" />
+            <button
+              onClick={() => { setPreviewUrl(null); URL.revokeObjectURL(previewUrl); }}
+              className="absolute -top-3 -right-3 flex h-8 w-8 items-center justify-center rounded-full bg-background shadow-md text-muted-foreground hover:text-foreground"
+              type="button"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
