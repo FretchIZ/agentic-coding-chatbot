@@ -45,6 +45,22 @@ const TOOLS = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'generate_image',
+      description: 'Generate an AI image from a text prompt',
+      parameters: {
+        type: 'object',
+        properties: {
+          prompt: { type: 'string', description: 'Detailed image description' },
+          width: { type: 'number', description: 'Image width in pixels (default 1024)' },
+          height: { type: 'number', description: 'Image height in pixels (default 1024)' },
+        },
+        required: ['prompt'],
+      },
+    },
+  },
 ];
 
 const BASE_PAYLOAD = {
@@ -81,6 +97,16 @@ async function executeToolCall(tc: any): Promise<string> {
     });
     const data = await res.json();
     return [`Exit: ${data.exitCode || 0}`, data.stdout && `STDOUT:\n${data.stdout}`, data.stderr && `STDERR:\n${data.stderr}`, `(took ${data.elapsed || 0}ms)`].filter(Boolean).join('\n');
+  }
+
+  if (name === 'generate_image') {
+    const res = await fetch(`${base}/api/generate-image`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: args.prompt, width: args.width || 1024, height: args.height || 1024 }),
+    });
+    const data = await res.json();
+    if (data.error) return `Error generating image: ${data.error}`;
+    return `![${data.prompt}](${data.url})`;
   }
 
   if (name === 'read_file') {

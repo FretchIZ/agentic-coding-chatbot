@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Plus, X, Send, Sparkles, Share2, Download, Terminal } from 'lucide-react';
+import { Plus, X, Send, Sparkles, Share2, Download, Terminal, ImageIcon } from 'lucide-react';
 import Markdown from './markdown';
 import type { Conversation, Message } from '@/lib/use-conversations';
 
@@ -152,7 +152,7 @@ export default function ChatInterface({ conversation, onAddMessage }: Props) {
                     Ask me to refactor, debug, or build features across your codebase. I can explore, edit, test, and iterate on multiple files.
                   </p>
                   <div className="mt-4 flex flex-wrap justify-center gap-2">
-                    {['Refactor this component', 'Find and fix bugs', 'Add a new feature', 'Optimize performance'].map((hint) => (
+                    {['Refactor this component', 'Find and fix bugs', 'Add a new feature', 'Optimize performance', 'Generate an image'].map((hint) => (
                       <button
                         key={hint}
                         onClick={() => { setInput(hint); }}

@@ -26,6 +26,7 @@ You have access to these tools:
 - \`edit_file(file, oldString, newString)\` — make targeted edits
 - \`write_file(path, content)\` — create or overwrite a file
 - \`execute_command(command)\` — run terminal commands
+- \`generate_image(prompt, width?, height?)\` — generate AI images
 - \`read_multiple_files(paths)\` — read several files at once
 
 Rules:
@@ -131,6 +132,22 @@ const TOOLS = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'generate_image',
+      description: 'Generate an AI image from a text prompt',
+      parameters: {
+        type: 'object',
+        properties: {
+          prompt: { type: 'string', description: 'Detailed image description' },
+          width: { type: 'number', description: 'Image width in pixels (default 1024)' },
+          height: { type: 'number', description: 'Image height in pixels (default 1024)' },
+        },
+        required: ['prompt'],
+      },
+    },
+  },
 ];
 
 function resolvePath(p: string): string {
@@ -212,6 +229,16 @@ async function handleToolCall(tc: any): Promise<string> {
       } catch (e: any) {
         return (e.stdout || '').slice(0, 5000) || e.message.slice(0, 5000);
       }
+    }
+    case 'generate_image': {
+      const base = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `http://localhost:${process.env.PORT || 3000}`;
+      const res = await fetch(`${base}/api/generate-image`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: args.prompt, width: args.width || 1024, height: args.height || 1024 }),
+      });
+      const data = await res.json();
+      if (data.error) return `Error generating image: ${data.error}`;
+      return `![${data.prompt}](${data.url})`;
     }
     default:
       return `Unknown tool: ${name}`;

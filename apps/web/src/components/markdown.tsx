@@ -114,6 +114,7 @@ function renderInline(text: string): string {
   let r = escapeHtml(text);
   r = r.replace(/\*\*(.+?)\*\*/g, '$1');
   r = r.replace(/`(.+?)`/g, '<code class="rounded-lg bg-muted px-1.5 py-0.5 text-xs font-mono shadow-sm">$1</code>');
+  r = r.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="max-w-full rounded-xl my-2 shadow-sm" loading="lazy" />');
   return r.replace(/\n/g, '<br/>');
 }
 
@@ -140,6 +141,10 @@ export default function Markdown({ content }: { content: string }) {
       blocks.push(`<blockquote class="border-l-4 border-muted-foreground/30 pl-4 italic mb-2 text-sm">${renderInline(t.replace(/^>\s?/gm, '').trim())}</blockquote>`);
     } else if (/^---/.test(t)) {
       blocks.push('<hr class="my-4 border-muted-foreground/20"/>');
+    } else if (/^!\[/.test(t.trim())) {
+      t.split('\n').forEach((l) => {
+        blocks.push(`<p class="mb-2">${renderInline(l)}</p>`);
+      });
     } else {
       t.split('\n').filter(Boolean).forEach((l) => {
         const cleaned = l.replace(/^#{1,6}\s/, '');
