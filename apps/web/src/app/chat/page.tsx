@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Menu } from 'lucide-react';
 import ChatInterface from '@/components/chat-interface';
 import Sidebar from '@/components/sidebar';
+import RightPanel from '@/components/right-panel';
 import { useConversations } from '@/lib/use-conversations';
 import type { Message } from '@/lib/use-conversations';
 
@@ -11,6 +12,7 @@ export default function ChatPage() {
   const { list, activeId, active, create, select, addMessage, remove } = useConversations();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [rightOpen, setRightOpen] = useState(true);
 
   const handleAddMessage = (msg: Message) => addMessage(msg);
 
@@ -52,6 +54,7 @@ export default function ChatPage() {
         </div>
         <ChatInterface conversation={active} onAddMessage={handleAddMessage} />
       </div>
+      <RightPanel open={rightOpen} onToggle={() => setRightOpen((r) => !r)} />
     </div>
   );
 }
