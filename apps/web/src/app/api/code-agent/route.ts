@@ -231,14 +231,10 @@ async function handleToolCall(tc: any): Promise<string> {
       }
     }
     case 'generate_image': {
-      const base = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `http://localhost:${process.env.PORT || 3000}`;
-      const res = await fetch(`${base}/api/generate-image`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: args.prompt, width: args.width || 1024, height: args.height || 1024 }),
-      });
-      const data = await res.json();
-      if (data.error) return `Error generating image: ${data.error}`;
-      return `![${data.prompt}](${data.url})`;
+      const encoded = encodeURIComponent((args.prompt || 'image').slice(0, 500));
+      const params = new URLSearchParams({ width: String(args.width || 1024), height: String(args.height || 1024) });
+      const url = `https://image.pollinations.ai/prompt/${encoded}?${params}`;
+      return `![${args.prompt}](${url})`;
     }
     default:
       return `Unknown tool: ${name}`;
