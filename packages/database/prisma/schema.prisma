@@ -7,66 +7,221 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Enable RLS extension
+model _Extensions {
+  // Placeholder for enabling RLS
+  // CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+  // ALTER TABLE "User" ENABLE ROW LEVEL SECURITY;
+  id String @id @default(cuid())
+}
+
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  image     String?
-  role      Role     @default(USER)
-  projects  Project[]
-  sessions  Session[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  image         String?
+  passwordHash  String?
+  role          Role     @default(USER)
+  status        UserStatus @default(ACTIVE)
+  emailVerified DateTime?
+  
+  // Relations
+  projects       Project[]
+  sessions       Session[]
+  apiKeys        ApiKey[]
+  auditLogs      AuditLog[]
+  rateLimit      RateLimit?
+  billingAccount BillingAccount?
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  @@index([email])
+  @@index([status])
+}
+
+model ApiKey {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name          String
+  keyHash       String   @unique
+  lastUsedAt    DateTime?
+  expiresAt     DateTime?
+  
+  createdAt     DateTime @default(now())
+  
+  @@index([userId])
 }
 
 model Session {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  token         String   @unique
+  userAgent     String?
+  ipAddress     String?
+  
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+  
+  @@index([userId, expiresAt])
+}
+
+model RateLimit {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  requestCount  Int      @default(0)
+  resetAt       DateTime @default(now())
+  tier          RateLimitTier @default(FREE)
+  
+  @@index([userId])
+}
+
+enum RateLimitTier {
+  FREE       // 100 req/hour
+  PRO        // 1000 req/hour
+  ENTERPRISE // 10000 req/hour
+}
+
+model BillingAccount {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  stripeId      String?  @unique
+  plan          BillingPlan @default(FREE)
+  status        BillingStatus @default(ACTIVE)
+  
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+enum BillingPlan {
+  FREE
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+enum BillingStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
 }
 
 enum Role {
   USER
   ADMIN
+  MODERATOR
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
 }
 
 model Project {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  files       File[]
-  tasks       Task[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name          String
+  description   String?
+  slug          String   @unique
+  visibility    Visibility @default(PRIVATE)
+  
+  // Relations
+  files         File[]
+  tasks         Task[]
+  webhooks      Webhook[]
+  members       ProjectMember[]
+  auditLogs     AuditLog[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  @@unique([userId, slug])
+  @@index([userId, visibility])
+}
+
+enum Visibility {
+  PRIVATE
+  INTERNAL
+  PUBLIC
+}
+
+model ProjectMember {
+  id            String   @id @default(cuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  email         String
+  role          ProjectRole @default(VIEWER)
+  invitedAt     DateTime @default(now())
+  joinedAt      DateTime?
+  
+  @@unique([projectId, email])
+  @@index([projectId])
+}
+
+enum ProjectRole {
+  VIEWER
+  EDITOR
+  ADMIN
 }
 
 model File {
-  id        String   @id @default(cuid())
-  path      String
-  content   String
-  language  String?
-  projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  path          String
+  content       String
+  language      String?
+  size          Int
+  hash          String   // SHA256 for change detection
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
   @@unique([projectId, path])
+  @@index([projectId, language])
 }
 
 model Task {
-  id          String    @id @default(cuid())
-  title       String
-  description String?
-  status      TaskStatus @default(PENDING)
-  type        TaskType
-  projectId   String
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  agentRuns   AgentRun[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id            String   @id @default(cuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  title         String
+  description   String?
+  status        TaskStatus @default(PENDING)
+  type          TaskType
+  priority      Priority @default(MEDIUM)
+  
+  // Execution tracking
+  runs          AgentRun[]
+  
+  // Metadata
+  metadata      Json?
+  tags          String[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([projectId, status, type])
+  @@index([projectId, createdAt])
 }
 
 enum TaskStatus {
@@ -86,18 +241,41 @@ enum TaskType {
   RESEARCH
 }
 
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
 model AgentRun {
-  id         String   @id @default(cuid())
-  agentId    String
-  taskId     String
-  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  status     RunStatus @default(RUNNING)
-  input      String
-  output     String?
-  error      String?
-  startedAt  DateTime @default(now())
-  completedAt DateTime?
-  logs       Log[]
+  id            String   @id @default(cuid())
+  taskId        String
+  task          Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  agentId       String
+  agentType     String   // coder, reviewer, tester, etc.
+  
+  status        RunStatus @default(RUNNING)
+  input         Json
+  output        Json?
+  error         String?
+  errorCode     String?
+  
+  // Performance metrics
+  startedAt     DateTime @default(now())
+  completedAt   DateTime?
+  durationMs    Int?
+  tokensUsed    Int?
+  
+  // Retry logic
+  retryCount    Int      @default(0)
+  maxRetries    Int      @default(3)
+  
+  logs          Log[]
+  
+  @@index([taskId, status])
+  @@index([agentType, createdAt])
 }
 
 enum RunStatus {
@@ -108,13 +286,19 @@ enum RunStatus {
 }
 
 model Log {
-  id        String   @id @default(cuid())
-  level     LogLevel
-  message   String
-  source    String?
-  agentRunId String?
-  agentRun  AgentRun? @relation(fields: [agentRunId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  level         LogLevel
+  message       String
+  source        String?
+  agentRunId    String?
+  agentRun      AgentRun? @relation(fields: [agentRunId], references: [id], onDelete: Cascade)
+  
+  metadata      Json?
+  
+  createdAt     DateTime @default(now())
+  
+  @@index([agentRunId, level])
+  @@index([level, createdAt])
 }
 
 enum LogLevel {
@@ -122,45 +306,150 @@ enum LogLevel {
   INFO
   WARN
   ERROR
+  FATAL
 }
 
 model Memory {
-  id        String   @id @default(cuid())
-  key       String
-  value     String
-  projectId String?
-  userId    String?
-  type      String   @default("general")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  @@index([key, projectId])
+  id            String   @id @default(cuid())
+  userId        String?
+  projectId     String?
+  
+  key           String
+  value         String
+  type          MemoryType @default(GENERAL)
+  ttl           Int?      // Time to live in seconds
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  expiresAt     DateTime?
+  
+  @@unique([userId, projectId, key, type])
+  @@index([userId, projectId])
+  @@index([expiresAt])
+}
+
+enum MemoryType {
+  GENERAL
+  CONVERSATION
+  CONTEXT
+  CACHE
 }
 
 model Chat {
-  id        String    @id @default(cuid())
-  title     String
-  userId    String?
-  messages  Message[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id            String   @id @default(cuid())
+  userId        String?
+  projectId     String?
+  
+  title         String
+  visibility    Visibility @default(PRIVATE)
+  
+  messages      Message[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([userId, projectId])
 }
 
 model Message {
-  id        String   @id @default(cuid())
-  chatId    String
-  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  role      String   // user | assistant | agent
-  content   String
-  agent     String?
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  chatId        String
+  chat          Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  
+  role          MessageRole
+  content       String
+  agent         String?
+  
+  metadata      Json?
+  
+  createdAt     DateTime @default(now())
+  
+  @@index([chatId, createdAt])
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  AGENT
+  SYSTEM
 }
 
 model Document {
-  id        String   @id @default(cuid())
-  title     String
-  content   String
-  metadata  Json?
-  projectId String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  projectId     String?
+  
+  title         String
+  content       String
+  
+  metadata      Json?
+  tags          String[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([projectId])
+  @@index([tags])
 }
+
+model Webhook {
+  id            String   @id @default(cuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  url           String
+  events        String[]
+  secret        String
+  
+  active        Boolean  @default(true)
+  retryPolicy   Json?
+  
+  deliveries    WebhookDelivery[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([projectId, active])
+}
+
+model WebhookDelivery {
+  id            String   @id @default(cuid())
+  webhookId     String
+  webhook       Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  
+  eventType     String
+  payload       Json
+  
+  statusCode    Int?
+  responseBody  String?
+  
+  retryCount    Int      @default(0)
+  nextRetryAt   DateTime?
+  
+  createdAt     DateTime @default(now())
+  
+  @@index([webhookId, eventType])
+  @@index([nextRetryAt])
+}
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId     String?
+  project       Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  action        String
+  resource      String
+  resourceId    String?
+  
+  changes       Json?    // Before/after values
+  ipAddress     String?
+  userAgent     String?
+  
+  createdAt     DateTime @default(now())
+  
+  @@index([userId, action])
+  @@index([projectId, createdAt])
+  @@index([action, createdAt])
+}
+
