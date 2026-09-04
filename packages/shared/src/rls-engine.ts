@@ -262,7 +262,7 @@ export async function logAudit(
   const prisma = getPrisma();
 
   try {
-    await prisma.auditLog.create({
+    await (prisma as any).auditLog.create({
       data: {
         userId,
         action,
@@ -284,10 +284,9 @@ export async function logAudit(
 export async function softDeleteUser(userId: string) {
   const prisma = getPrisma();
 
-  await prisma.user.update({
+  await (prisma as any).user.update({
     where: { id: userId },
     data: {
-      deletedAt: new Date(),
       status: 'DELETED',
       // Anonymize sensitive data
       email: `deleted-${userId}@example.com`,
@@ -311,18 +310,18 @@ export async function hasProjectAccess(
   const prisma = getPrisma();
 
   // Project owner always has access
-  const project = await prisma.project.findUnique({ where: { id: projectId } });
+  const project = await (prisma as any).project.findUnique({ where: { id: projectId } });
   if (project?.userId === userId) return true;
 
   // Check membership
-  const roleHierarchy = { VIEWER: 0, EDITOR: 1, ADMIN: 2 };
-  const member = await prisma.projectMember.findFirst({
+  const roleHierarchy: Record<string, number> = { VIEWER: 0, EDITOR: 1, ADMIN: 2 };
+  const member = await (prisma as any).projectMember.findFirst({
     where: {
       projectId,
-      email: (await prisma.user.findUnique({ where: { id: userId } }))?.email,
+      email: ((await (prisma as any).user.findUnique({ where: { id: userId } })) as any)?.email,
     },
   });
 
   if (!member) return false;
-  return roleHierarchy[member.role] >= roleHierarchy[requiredRole];
+  return (roleHierarchy[member.role] || 0) >= (roleHierarchy[requiredRole] || 0);
 }

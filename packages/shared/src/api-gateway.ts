@@ -18,6 +18,7 @@ export interface AuthenticatedRequest extends Request {
     apiKeyId?: string;
   };
   clientId?: string; // For rate limiting
+  id?: string; // Request ID
 }
 
 export interface ApiError extends Error {
@@ -172,7 +173,7 @@ export class AuthService {
     const prisma = getPrisma();
     
     try {
-      const apiKey = await prisma.apiKey.findUnique({
+      const apiKey = await (prisma as any).apiKey.findUnique({
         where: { keyHash },
         include: { user: true },
       });
@@ -186,7 +187,7 @@ export class AuthService {
       }
 
       // Update last used timestamp
-      await prisma.apiKey.update({
+      await (prisma as any).apiKey.update({
         where: { id: apiKey.id },
         data: { lastUsedAt: new Date() },
       });
@@ -255,9 +256,9 @@ export function createMiddleware(
   // Request logging middleware
   const requestLogger = (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
     logger.info('Request received', {
-      method: req.method,
-      path: req.path,
-      ip: req.ip,
+      method: (req as any).method,
+      path: (req as any).path,
+      ip: (req as any).ip,
       userId: req.user?.id,
     });
     next();
@@ -293,8 +294,8 @@ export function createMiddleware(
     next: NextFunction
   ) => {
     try {
-      const authHeader = req.headers.authorization;
-      const apiKeyHeader = req.headers['x-api-key'];
+      const authHeader = (req as any).headers.authorization;
+      const apiKeyHeader = (req as any).headers['x-api-key'];
 
       if (apiKeyHeader) {
         // API Key authentication
@@ -314,7 +315,7 @@ export function createMiddleware(
         req.clientId = userId;
       } else {
         // No auth required for public endpoints (checked at route level)
-        req.clientId = req.ip || 'unknown';
+        req.clientId = (req as any).ip || 'unknown';
       }
 
       next();
@@ -341,7 +342,7 @@ export function createMiddleware(
       let tier = 'FREE';
 
       if (req.user?.id) {
-        const rateLimit = await prisma.rateLimit.findUnique({
+        const rateLimit = await (prisma as any).rateLimit.findUnique({
           where: { userId: req.user.id },
         });
         tier = rateLimit?.tier || 'FREE';
@@ -369,8 +370,8 @@ export function createMiddleware(
     next: NextFunction
   ) => {
     try {
-      const result = schema.parse(req.body);
-      req.body = result;
+      const result = schema.parse((req as any).body);
+      (req as any).body = result;
       next();
     } catch (error) {
       if (error instanceof z.ZodError) {

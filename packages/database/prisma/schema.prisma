@@ -7,14 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Enable RLS extension
-model _Extensions {
-  // Placeholder for enabling RLS
-  // CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-  // ALTER TABLE "User" ENABLE ROW LEVEL SECURITY;
-  id String @id @default(cuid())
-}
-
 model User {
   id            String   @id @default(cuid())
   email         String   @unique
@@ -273,6 +265,8 @@ model AgentRun {
   maxRetries    Int      @default(3)
   
   logs          Log[]
+  
+  createdAt     DateTime @default(now())
   
   @@index([taskId, status])
   @@index([agentType, createdAt])
