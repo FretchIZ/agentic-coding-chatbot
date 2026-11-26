@@ -1,11 +1,12 @@
 import express, { Express } from 'express';
-import { createClient } from 'redis';
+import { createClient, RedisClientType } from 'redis';
 import { getPrisma } from '@codeagent/database';
 import {
   AuthService,
   RateLimiter,
   createMiddleware,
   Logger,
+  AuthenticatedRequest,
 } from '@codeagent/shared';
 import routes from './routes';
 
@@ -43,7 +44,7 @@ export async function createServer(): Promise<Express> {
   // Initialize Services
   // ============================================================================
 
-  let redis;
+  let redis: RedisClientType | undefined;
   try {
     redis = createClient({
       url: process.env.REDIS_URL || 'redis://localhost:6379',
@@ -60,8 +61,8 @@ export async function createServer(): Promise<Express> {
   }
 
   const authService = new AuthService();
-  const rateLimiter = new RateLimiter(redis);
-  const middleware = createMiddleware(redis, authService, rateLimiter);
+  const rateLimiter = new RateLimiter(redis!);
+  const middleware = createMiddleware(redis!, authService, rateLimiter);
 
   // ============================================================================
   // Middleware Pipeline
@@ -78,8 +79,9 @@ export async function createServer(): Promise<Express> {
 
   // 4. Request ID (for tracing)
   app.use((req, res, next) => {
-    req.id = req.headers['x-request-id'] as string || generateRequestId();
-    res.setHeader('X-Request-ID', req.id);
+    const authReq = req as AuthenticatedRequest;
+    authReq.id = req.headers['x-request-id'] as string || generateRequestId();
+    res.setHeader('X-Request-ID', authReq.id);
     next();
   });
 
