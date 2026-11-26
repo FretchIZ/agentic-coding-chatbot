@@ -11,7 +11,9 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "express": "^4.21.2",
     "hono": "^4.6.0",
+    "redis": "^4.7.0",
     "@codeagent/shared": "*",
     "@codeagent/telemetry": "*",
     "@codeagent/database": "*",
@@ -21,6 +23,7 @@
     "@codeagent/git": "*"
   },
   "devDependencies": {
+    "@types/express": "^4.17.21",
     "@types/node": "^22.0.0",
     "typescript": "^5.7.0",
     "tsx": "^4.19.0",

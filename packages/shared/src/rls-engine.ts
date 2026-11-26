@@ -315,7 +315,7 @@ export async function hasProjectAccess(
   if (project?.userId === userId) return true;
 
   // Check membership
-  const roleHierarchy = { VIEWER: 0, EDITOR: 1, ADMIN: 2 };
+  const roleHierarchy: Record<string, number> = { VIEWER: 0, EDITOR: 1, ADMIN: 2 };
   const member = await prisma.projectMember.findFirst({
     where: {
       projectId,

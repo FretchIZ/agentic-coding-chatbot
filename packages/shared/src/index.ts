@@ -1,3 +1,6 @@
+export * from './api-gateway';
+export * from './rls-engine';
+
 export type DeepPartial<T> = T extends object ? { [P in keyof T]?: DeepPartial<T[P]> } : T;
 
 export type Awaitable<T> = T | Promise<T>;
